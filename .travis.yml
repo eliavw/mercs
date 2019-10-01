@@ -1,0 +1,27 @@
+language:
+  python
+
+python:
+  - 3.6
+
+install:
+    - source tests/travis_setup.sh
+
+script:
+    - python setup.py develop
+    - pytest tests -v
+#    - pytest tests/integration/ -v
+#    - pytest tests/unit/ -v
+
+after_script:
+    - travis-cleanup
+
+notifications:
+  email:
+    recipients:
+      - elia.vanwolputte@gmail.com
+    on_success: change  # default: change
+    on_failure: always  # default: always
+
+
+
