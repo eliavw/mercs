@@ -10,7 +10,7 @@ VERBOSITY = 0
 
 
 class CompositeModel(object):
-    def __init__(self, diagram, methods, desc_ids=None, targ_ids=None):
+    def __init__(self, diagram, desc_ids=None, targ_ids=None):
 
         # Assign desc and targ ids
         if desc_ids is not None:
@@ -32,7 +32,7 @@ class CompositeModel(object):
 
         self.feature_importances_ = self.extract_feature_importances(diagram)
 
-        self.predict = _get_predict(methods, self.targ_ids)
+        self.predict = _get_predict(diagram, self.targ_ids)
         self.out_kind = self.extract_out_kind(diagram, self.targ_ids)
 
         debug_print(self.out_kind)
@@ -43,7 +43,7 @@ class CompositeModel(object):
                 diagram, self.targ_ids
             )
 
-            self.predict_proba = _get_predict_proba(methods, self.nominal_targ_ids)
+            self.predict_proba = _get_predict_proba(diagram, self.nominal_targ_ids)
             self.classes_ = _get_classes(diagram, self.nominal_targ_ids)
 
         return
@@ -97,10 +97,11 @@ def _get_classes(diagram, nominal_targ_ids):
         return targ_classes_
 
 
-def _get_predict_proba(methods, nominal_targ_ids):
+def _get_predict_proba(diagram, nominal_targ_ids):
 
     nominal_targ_ids.sort()
-    tgt_methods = [methods[node_label(t, kind="prob")] for t in nominal_targ_ids]
+    rel_nodes = [node_label(t, kind="prob") for t in nominal_targ_ids]
+    tgt_methods = [diagram.nodes[n]["dask"] for n in rel_nodes]
 
     if len(tgt_methods) == 1:
         # We can safely return the only method
@@ -111,14 +112,13 @@ def _get_predict_proba(methods, nominal_targ_ids):
         return collector
 
 
-def _get_predict(methods, targ_ids):
+def _get_predict(diagram, targ_ids):
     """
     Compose single predict function for a diagram.
 
     Parameters
     ----------
     diagram
-    methods
 
     Returns
     -------
@@ -126,7 +126,8 @@ def _get_predict(methods, targ_ids):
     """
     targ_ids.sort()
 
-    tgt_methods = [methods[node_label(t, kind="data")] for t in targ_ids]
+    rel_nodes = [node_label(t, kind="data") for t in targ_ids]
+    tgt_methods = [diagram.nodes[n]["dask"] for n in rel_nodes]
 
     if len(tgt_methods) == 1:
         # We can safely return the only method

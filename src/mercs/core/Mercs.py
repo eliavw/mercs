@@ -4,7 +4,7 @@ from timeit import default_timer
 
 import numpy as np
 from dask import delayed
-from networkx import NetworkXUnfeasible, find_cycle
+from networkx import NetworkXUnfeasible, find_cycle, topological_sort
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -13,7 +13,7 @@ from xgboost import XGBClassifier, XGBRegressor
 from ..algo import inference, prediction, selection, new_prediction
 from ..algo.induction import base_induction_algorithm
 from ..composition import CompositeModel, o, x
-from ..graph import model_to_graph, get_targ
+from ..graph import model_to_graph, get_targ, compose_all
 from ..utils import (DESC_ENCODING,
                      TARG_ENCODING,
                      MISS_ENCODING)
@@ -216,41 +216,74 @@ class Mercs(object):
                 self.q_diagram = self.prediction_algorithm(
                     self.g_list, q_code, **self.prd_cfg
                 )
-            
-            self.q_diagram = self._add_imputer_function(self.q_diagram)
-            self.q_diagram = self._add_ids(self.q_diagram, self.q_desc_ids, self.q_targ_ids)
 
-            # Convert diagram to methods.
-            try:
-                self.q_methods = self.inference_algorithm(self.q_diagram, X)
-            except NetworkXUnfeasible:
-                cycle = find_cycle(self.q_diagram, orientation="original")
-                msg = """
-                Topological sort failed, investigate diagram to debug.
-                
-                I will never be able to squeeze a prediction out of a diagram with a loop.
-                
-                Cycle was:  {}
-                """.format(
-                    cycle
-                )
-                raise RecursionError(msg)
+            if isinstance(self.q_diagram, list):
+                self.q_diagrams = self.q_diagram
+                self.q_models = [self._get_q_model(d, X) for d in self.q_diagram]
+                self.q_diagram, self.q_model = self.merge_models(self.q_models)
+            else:
+                self.q_model = self._get_q_model(self.q_diagram, X)
         
-        # Do the dask!
-        target_nodes = get_targ(self.q_diagram)
-        target_functions = [self.q_diagram.nodes[n]["dask"] for n in target_nodes]
-        collector = delayed(np.stack)(target_functions, axis=1)
-        res = collector.compute()
-
+        res = self.q_model.predict.compute()
         toc = default_timer()
         self.model_data["inf_time"] = toc - tic
         return res
 
+    # Diagrams
     def show_q_diagram(self, kind="svg", fi=False, ortho=False, **kwargs):
         return show_diagram(self.q_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
 
     def save_diagram(self, fname=None, kind="svg", fi=False, ortho=False):
         return save_diagram(self.q_diagram, fname, kind=kind, fi=fi, ortho=ortho)
+
+    # Inference
+    def merge_models(self, q_models):
+
+        types = self._get_types(self.metadata)
+        
+        walks = [model_to_graph(m, types, idx=idx, composition=True) for idx, m in enumerate(q_models)] 
+        q_diagram = compose_all(walks)
+        filtered_nodes = self.filter_nodes(q_diagram)
+
+        try:
+            self.inference_algorithm(q_diagram, sorted_nodes=filtered_nodes)
+        except NetworkXUnfeasible:
+            cycle = find_cycle(q_diagram, orientation="original")
+            msg = """
+            Topological sort failed, investigate diagram to debug.
+            
+            I will never be able to squeeze a prediction out of a diagram with a loop.
+            
+            Cycle was:  {}
+            """.format(
+                cycle
+            )
+            raise RecursionError(msg)
+
+        q_model = CompositeModel(q_diagram)
+        return q_diagram, q_model
+
+    def _get_q_model(self, q_diagram, X):
+
+        self._add_imputer_function(q_diagram)
+
+        try:
+            self.inference_algorithm(q_diagram, X=X)
+        except NetworkXUnfeasible:
+            cycle = find_cycle(q_diagram, orientation="original")
+            msg = """
+            Topological sort failed, investigate diagram to debug.
+            
+            I will never be able to squeeze a prediction out of a diagram with a loop.
+            
+            Cycle was:  {}
+            """.format(
+                cycle
+            )
+            raise RecursionError(msg)
+
+        q_model = CompositeModel(q_diagram)
+        return q_model
 
     # Graphs
     def _update_g_list(self):
@@ -308,7 +341,7 @@ class Mercs(object):
 
                 g.nodes[n]["function"] = o(f_3, o(f_2, f_1))
 
-        return g
+        return 
 
     # Add ids
     @staticmethod
@@ -525,3 +558,15 @@ class Mercs(object):
 
         """
         return np.nonzero(np.in1d(a, b))[0]
+
+    @staticmethod
+    def filter_nodes(g):
+        # This is not as safe as it should be
+        
+        sorted_nodes = list(topological_sort(g))
+        filtered_nodes = []
+        for n in reversed(sorted_nodes):
+            if g.nodes[n]["kind"] == 'model': break
+            filtered_nodes.append(n)
+        filtered_nodes = list(reversed(filtered_nodes))
+        return filtered_nodes

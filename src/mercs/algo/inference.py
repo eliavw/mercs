@@ -118,7 +118,6 @@ def dask_inference_algorithm(g, X=None, sorted_nodes=None):
         data = delayed(X[:, q_desc_ids])
 
     for node_name in sorted_nodes:
-        print(node_name)
         kind = g.nodes[node_name]['kind']
         node = g.nodes[node_name]
 
@@ -126,6 +125,9 @@ def dask_inference_algorithm(g, X=None, sorted_nodes=None):
             actions[kind](node, data)
         elif kind in {'data'}:
             actions[kind](g, node, node_name, data, q_desc_ids)
+            functions[node_name] = node["dask"]
+        elif kind in {'prob'}:
+            actions[kind](g, node, node_name)
             functions[node_name] = node["dask"]
         else:
             actions[kind](g, node, node_name)
@@ -195,8 +197,13 @@ def dask_prob_node(g, node, node_name):
 def dask_vote_node(g, node, node_name):
     parent_node = [s for s, t in g.in_edges(node_name)].pop()
     parent_function = g.nodes[parent_node]["dask"]
+    classes = node["classes"]
 
-    node["dask"] = delayed(node["function"])(parent_function)
+    # Build function
+    def vote(X):
+        return classes.take(np.argmax(X, axis=1), axis=0)
+
+    node["dask"] = delayed(vote)(parent_function)
     return
 
 

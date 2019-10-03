@@ -162,6 +162,35 @@ def rw(
     fi,
     t_codes,
     max_steps=4,
+    nb_walks=1,
+    init_threshold=1.0,
+    stepsize=0.1,
+    random_state=997,
+):
+
+    q_diagrams = [
+        walk(
+            g_list,
+            q_code,
+            fi,
+            t_codes,
+            max_steps=max_steps,
+            init_threshold=init_threshold,
+            stepsize=stepsize,
+            random_state=random_state+i,
+        )
+        for i in range(nb_walks)
+    ]
+
+    return q_diagrams
+
+
+def walk(
+    g_list,
+    q_code,
+    fi,
+    t_codes,
+    max_steps=4,
     init_threshold=1.0,
     stepsize=0.1,
     random_state=997,
@@ -458,6 +487,7 @@ def _init_thresholds(init_threshold, stepsize):
 
 
 # Graph
+
 
 def _build_diagram(
     g_sel,

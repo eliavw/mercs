@@ -24,11 +24,12 @@ SHAPES = dict(
     imputation='"invtriangle"',
     imputer='"invtriangle"',
     function='"square"',
+    composition='"square"',
     model='"square"')
 
 
 # Building a graph
-def model_to_graph(model, types=None, idx=0):
+def model_to_graph(model, types=None, idx=0, composition=False):
     """
     Convert a model to a network.
 
@@ -55,7 +56,11 @@ def model_to_graph(model, types=None, idx=0):
     G = nx.DiGraph()
 
     # Create nodes
-    func_nodes = [_create_func_node(model, idx=idx)]
+
+    if composition:
+        func_nodes = [_create_comp_node(model, idx=idx)]
+    else:
+        func_nodes = [_create_func_node(model, idx=idx)]
 
     nominal = func_nodes[0][1]["out"] == "nominal"  # Nominal model yes/no
 
@@ -124,10 +129,40 @@ def model_to_graph(model, types=None, idx=0):
     return G
 
 
+def _create_comp_node(model, idx=0):
+    comp_node = (
+        node_label(idx, kind="composition"),
+        dict(
+            kind="model",
+            idx=idx,
+            mod=model,
+            src=model.desc_ids,
+            tgt=model.targ_ids,
+            out=model.out_kind
+        ),
+    )
+
+    if comp_node[1]["out"] in {"numeric"}:
+        comp_node[1]["predict"] = model.predict
+        
+        # No need to do inference, this goes right away
+        comp_node[1]["dask"] = comp_node[1]["predict"]
+    elif comp_node[1]["out"] in {"nominal", "mix"}:
+        comp_node[1]["predict"] = model.predict
+        comp_node[1]["predict_proba"] = model.predict_proba
+
+        # No need to do inference, this goes right away
+        comp_node[1]["dask"] = comp_node[1]["predict"]
+        comp_node[1]["dask_proba"] = comp_node[1]["predict_proba"]
+    else:
+        pass
+    return comp_node
+
+
 def _create_func_node(model, idx=0):
 
     func_node = (
-        node_label(idx, kind="model"),
+        node_label(idx, kind="function"),
         dict(
             kind="model",
             idx=idx,
@@ -170,12 +205,7 @@ def _create_vote_node(idx, types, classes):
         dict(kind="vote", idx=idx, tgt=[idx], type=types[idx], classes=classes[idx]),
     )
 
-    classes = vote_node[1]["classes"]
 
-    def vote(X):
-        return classes.take(np.argmax(X, axis=1), axis=0)
-
-    vote_node[1]["function"] = vote
     return vote_node
 
 
