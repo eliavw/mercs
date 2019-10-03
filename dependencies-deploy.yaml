@@ -12,3 +12,8 @@ dependencies:
   - ipython
   - matplotlib
   - scikit-learn
+  - networkx
+  - dask
+  - pip:
+    - pydot
+    - xgboost

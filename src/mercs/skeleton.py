@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 This is a skeleton file that can serve as a starting point for a Python
@@ -5,7 +6,7 @@ console script. To run this script uncomment the following lines in the
 [options.entry_points] section in setup.cfg:
 
     console_scripts =
-         fibonacci = mercs.skeleton:run
+         fibonacci = modulo.skeleton:run
 
 Then run `python setup.py install` which will install the command `fibonacci`
 inside your current environment.
@@ -21,8 +22,8 @@ import logging
 
 from mercs import __version__
 
-__author__ = "Elia vw"
-__copyright__ = "Elia vw"
+__author__ = "elia"
+__copyright__ = "elia"
 __license__ = "mit"
 
 _logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ def parse_args(args):
     """
     parser = argparse.ArgumentParser(description="Just a Fibonnaci demonstration")
     parser.add_argument(
-        "--version", action="version", version="mercs {ver}".format(ver=__version__)
+        "--version", action="version", version="modulo {ver}".format(ver=__version__)
     )
     parser.add_argument(dest="n", help="n-th Fibonacci number", type=int, metavar="INT")
     parser.add_argument(
