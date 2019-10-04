@@ -20,6 +20,32 @@ from ..utils import (
 VERBOSITY = 0
 
 
+def mi(g_list, q_code, fi, t_codes, random_state=997):
+
+    # Init
+    mod_ids = [g.graph["id"] for g in g_list]
+
+    # Calculate criteria
+    avl_att = _att_indicator(q_code, kind="desc")
+    avl_mod = _mod_indicator(mod_ids, q_code, t_codes, any_target=True)
+    criteria = avl_mod
+
+    # Pick
+    g_sel = _avl_pick(g_list, criteria)
+
+    
+    # Build new graph
+    q_diagram = _build_diagram(
+        g_sel,
+        avl_att,
+        imputation_nodes=True,
+        merge_nodes=True,
+        test=True,
+    )
+
+    return q_diagram
+
+
 def mrai(
     g_list,
     q_code,
@@ -177,7 +203,7 @@ def rw(
             max_steps=max_steps,
             init_threshold=init_threshold,
             stepsize=stepsize,
-            random_state=random_state+i,
+            random_state=random_state + i,
         )
         for i in range(nb_walks)
     ]
@@ -253,8 +279,6 @@ def walk(
     # Build diagram
     avl_desc = set(q_desc)
     for g in g_sel:
-        print(g.nodes())
-        print(g.graph["desc_ids"], g.graph["targ_ids"])
         add_imputation_nodes(g, avl_desc)
         avl_desc = avl_desc.union(g.graph["targ_ids"])
 
@@ -461,10 +485,15 @@ def _stochastic_pick(g_list, criteria, n=1, random_state=997):
 def _greedy_pick(g_list, criteria, thresholds):
     # I do not think I need to copy!
     for thr in thresholds:
-        sel_g = [g_list[idx].copy() for idx, c in enumerate(criteria) if c > thr]
-        if _stopping_criterion_greedy_pick(sel_g):
+        g_sel = [g_list[idx].copy() for idx, c in enumerate(criteria) if c > thr]
+        if _stopping_criterion_greedy_pick(g_sel):
             break
-    return sel_g
+    return g_sel
+
+
+def _avl_pick(g_list, criteria):
+    g_sel = [g_list[idx].copy() for idx, c in enumerate(criteria) if c > 0.8]
+    return g_sel
 
 
 # Initializations

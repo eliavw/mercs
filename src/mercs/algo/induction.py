@@ -88,8 +88,6 @@ def base_induction_algorithm(
     return m_list
 
 
-# Random edit
-
 
 def _learn_model(data, desc_ids, targ_ids, learner, out_kind="numeric", **kwargs):
     """

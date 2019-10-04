@@ -14,11 +14,8 @@ from ..algo import inference, prediction, selection, new_prediction
 from ..algo.induction import base_induction_algorithm
 from ..composition import CompositeModel, o, x
 from ..graph import model_to_graph, get_targ, compose_all
-from ..utils import (DESC_ENCODING,
-                     TARG_ENCODING,
-                     MISS_ENCODING)
+from ..utils import DESC_ENCODING, TARG_ENCODING, MISS_ENCODING
 from ..visuals import save_diagram, show_diagram
-
 
 
 class Mercs(object):
@@ -43,18 +40,16 @@ class Mercs(object):
     }
 
     prediction_algorithms = {
-        "mi": prediction.mi_algorithm,
-        "ma": prediction.ma_algorithm,
-        "mrai": prediction.mrai_algorithm,
-        "it": prediction.it_algorithm,
-        "rw": prediction.rw_algorithm,
-        "mrai-new": new_prediction.mrai,
-        "it-new": new_prediction.it,
-        "rw-new": new_prediction.rw,
+        "mi": new_prediction.mi,
+        "mrai": new_prediction.mrai,
+        "it": new_prediction.it,
+        "rw": new_prediction.rw,
     }
 
-    inference_algorithms = {"base": inference.base_inference_algorithm,
-                            "dask": inference.dask_inference_algorithm}
+    inference_algorithms = {
+        "base": inference.base_inference_algorithm,
+        "dask": inference.dask_inference_algorithm,
+    }
 
     # Used in parse kwargs to identify parameters. If this identification goes wrong, you are sending settings
     # somewhere you do not want them to be. So, this is a tricky part, and moreover hardcoded. In other words:
@@ -202,20 +197,9 @@ class Mercs(object):
             self.q_targ_ids = np.where(q_code == TARG_ENCODING)[0].tolist()
 
             # Make custom diagram
-            new_algo = (
-                self.prediction_algorithm == self.prediction_algorithms["mrai-new"]
-                or self.prediction_algorithm == self.prediction_algorithms["it-new"]
-                or self.prediction_algorithm == self.prediction_algorithms["rw-new"]
+            self.q_diagram = self.prediction_algorithm(
+                self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
             )
-
-            if new_algo:
-                self.q_diagram = self.prediction_algorithm(
-                    self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
-                )
-            else:
-                self.q_diagram = self.prediction_algorithm(
-                    self.g_list, q_code, **self.prd_cfg
-                )
 
             if isinstance(self.q_diagram, list):
                 self.q_diagrams = self.q_diagram
@@ -223,7 +207,7 @@ class Mercs(object):
                 self.q_diagram, self.q_model = self.merge_models(self.q_models)
             else:
                 self.q_model = self._get_q_model(self.q_diagram, X)
-        
+
         res = self.q_model.predict.compute()
         toc = default_timer()
         self.model_data["inf_time"] = toc - tic
@@ -240,8 +224,11 @@ class Mercs(object):
     def merge_models(self, q_models):
 
         types = self._get_types(self.metadata)
-        
-        walks = [model_to_graph(m, types, idx=idx, composition=True) for idx, m in enumerate(q_models)] 
+
+        walks = [
+            model_to_graph(m, types, idx=idx, composition=True)
+            for idx, m in enumerate(q_models)
+        ]
         q_diagram = compose_all(walks)
         filtered_nodes = self.filter_nodes(q_diagram)
 
@@ -341,7 +328,7 @@ class Mercs(object):
 
                 g.nodes[n]["function"] = o(f_3, o(f_2, f_1))
 
-        return 
+        return
 
     # Add ids
     @staticmethod
@@ -562,11 +549,12 @@ class Mercs(object):
     @staticmethod
     def filter_nodes(g):
         # This is not as safe as it should be
-        
+
         sorted_nodes = list(topological_sort(g))
         filtered_nodes = []
         for n in reversed(sorted_nodes):
-            if g.nodes[n]["kind"] == 'model': break
+            if g.nodes[n]["kind"] == "model":
+                break
             filtered_nodes.append(n)
         filtered_nodes = list(reversed(filtered_nodes))
         return filtered_nodes
