@@ -177,6 +177,7 @@ class Mercs(object):
         return
 
     def predict(self, X, q_code=None, prediction_algorithm=None, reuse=True, **kwargs):
+        print("Start prediction")
         if q_code is None:
             q_code = self._default_q_code()
 
@@ -189,28 +190,45 @@ class Mercs(object):
                 prediction_algorithm=prediction_algorithm, **kwargs
             )
 
-        tic = default_timer()
-        if not reuse:
-            # Adjust data
-            self.q_code = q_code
-            self.q_desc_ids = np.where(q_code == DESC_ENCODING)[0].tolist()
-            self.q_targ_ids = np.where(q_code == TARG_ENCODING)[0].tolist()
+        tic_prediction = default_timer()
+        # Adjust data
+        self.q_code = q_code
+        self.q_desc_ids = np.where(q_code == DESC_ENCODING)[0].tolist()
+        self.q_targ_ids = np.where(q_code == TARG_ENCODING)[0].tolist()
 
-            # Make custom diagram
-            self.q_diagram = self.prediction_algorithm(
-                self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
-            )
+        # Make custom diagram
+        self.q_diagram = self.prediction_algorithm(
+            self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
+        )
 
-            if isinstance(self.q_diagram, list):
-                self.q_diagrams = self.q_diagram
-                self.q_models = [self._get_q_model(d, X) for d in self.q_diagram]
-                self.q_diagram, self.q_model = self.merge_models(self.q_models)
-            else:
-                self.q_model = self._get_q_model(self.q_diagram, X)
+        toc_prediction = default_timer()
 
+        print("Done prediction")
+
+        tic_dask = default_timer()
+        if isinstance(self.q_diagram, list):
+            self.q_diagrams = self.q_diagram
+            self.q_models = [self._get_q_model(d, X) for d in self.q_diagram]
+            self.q_diagram, self.q_model = self.merge_models(self.q_models)
+        else:
+            self.q_model = self._get_q_model(self.q_diagram, X)
+        toc_dask = default_timer()
+        print("Done inference")
+
+        tic_compute = default_timer()
         res = self.q_model.predict.compute()
-        toc = default_timer()
-        self.model_data["inf_time"] = toc - tic
+        toc_compute = default_timer()
+
+        self.model_data["prd_time"] = toc_prediction - tic_prediction
+        self.model_data["dsk_time"] = toc_dask - tic_dask
+        self.model_data["cmp_time"] = toc_compute - tic_compute
+        self.model_data["inf_time"] = toc_compute - tic_prediction
+
+        self.model_data["ratios"] = (
+            self.model_data["prd_time"] / self.model_data["inf_time"],
+            self.model_data["dsk_time"] / self.model_data["inf_time"],
+            self.model_data["cmp_time"] / self.model_data["inf_time"],
+        )
         return res
 
     # Diagrams
