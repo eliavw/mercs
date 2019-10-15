@@ -2,6 +2,9 @@
 .ipynb_checkpoints
 */ipynb_checkpoints/*
 
+#Models
+*/*.pkl
+
 # IDE
 .idea
 */.idea/*

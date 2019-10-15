@@ -177,7 +177,6 @@ class Mercs(object):
         return
 
     def predict(self, X, q_code=None, prediction_algorithm=None, reuse=True, **kwargs):
-        print("Start prediction")
         if q_code is None:
             q_code = self._default_q_code()
 
@@ -203,8 +202,6 @@ class Mercs(object):
 
         toc_prediction = default_timer()
 
-        print("Done prediction")
-
         tic_dask = default_timer()
         if isinstance(self.q_diagram, list):
             self.q_diagrams = self.q_diagram
@@ -213,7 +210,6 @@ class Mercs(object):
         else:
             self.q_model = self._get_q_model(self.q_diagram, X)
         toc_dask = default_timer()
-        print("Done inference")
 
         tic_compute = default_timer()
         res = self.q_model.predict.compute()
@@ -321,12 +317,21 @@ class Mercs(object):
 
         i_list = []
         for c in range(n_cols):
-            if c in self.metadata["nominal_attributes"]:
-                current_strategy = "most_frequent"
-            else:
-                current_strategy = "mean"
+            i_config = dict(missing_values=np.nan)
 
-            i = SimpleImputer(missing_values=np.nan, strategy=current_strategy)
+            if c in self.metadata["nominal_attributes"]:
+                i_config['strategy'] = "most_frequent"
+            elif (
+                self.classifier_algorithm == XGBClassifier
+                or self.regressor_algorithm == XGBRegressor
+            ):
+                # So basically, do nothing. XGB copes.
+                i_config['strategy'] = "constant"
+                i_config['fill_value'] = np.nan
+            else:
+                i_config['strategy'] = "mean"
+
+            i = SimpleImputer(**i_config)
             i.fit(X[:, [c]])
             i_list.append(i)
 

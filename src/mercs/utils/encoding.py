@@ -46,7 +46,13 @@ def code_to_query(code, return_sets=False, return_list=False):
 
 
 def get_att(code, kind="desc"):
-    return np.where(code == ENCODING[kind])[0]
+    return np.where(code == ENCODING[kind])[0].astype(int)
+
+
+def get_att_2d(codes, kind="desc"):
+    #return np.unique(np.where(codes == ENCODING[kind])[1].astype(int))
+    return np.unique(np.where(codes == ENCODING[kind])[1].astype(int))
+
 
 
 def query_to_code(q_desc, q_targ, q_miss=None, atts=None):
