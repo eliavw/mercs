@@ -10,7 +10,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from xgboost import XGBClassifier, XGBRegressor
 
-from ..algo import inference, prediction, selection, new_prediction
+from ..algo import inference, selection, new_prediction
 from ..algo.induction import base_induction_algorithm
 from ..composition import CompositeModel, o, x
 from ..graph import model_to_graph, get_targ, compose_all
@@ -70,7 +70,7 @@ class Mercs(object):
         regressor_algorithm="DT",
         prediction_algorithm="mi",
         inference_algorithm="dask",
-        random_state=997,
+        random_state=42,
         **kwargs
     ):
         self.random_state = random_state
@@ -164,7 +164,7 @@ class Mercs(object):
             regressor=self.regressor_algorithm,
             classifier_kwargs=self.clf_cfg,
             regressor_kwargs=self.rgr_cfg,
-            random_state=self.configuration.get("random_state", 997),
+            random_state=self.configuration.get("random_state", 42),
         )
 
         self._update_g_list()
@@ -176,7 +176,7 @@ class Mercs(object):
 
         return
 
-    def predict(self, X, q_code=None, prediction_algorithm=None, reuse=True, **kwargs):
+    def predict(self, X, q_code=None, prediction_algorithm=None, reuse=False, **kwargs):
         if q_code is None:
             q_code = self._default_q_code()
 

@@ -26,7 +26,7 @@ def mi(g_list, q_code, fi, t_codes, random_state=997):
         q_code,
         fi,
         t_codes,
-        init_threshold=0,
+        init_threshold=-0.1,
         stepsize=0.1,
         greedy=True,
         stochastic=False,
@@ -88,9 +88,8 @@ def mrai(
     criteria = (
         criteria * avl_mod
     )  # All the criteria of unavailable models are set to zero
-    criteria = criteria + (
-        avl_mod - 1
-    )  # Unavailable models are set to -1, available ones keep their score.
+
+    criteria[np.where(avl_mod<=0)[0], :] = -1  # Unavailable models are set to -1, available ones keep their score.
 
     # Pick
     for c_idx in range(criteria.shape[1]):
@@ -445,7 +444,13 @@ def _mod_indicator(mod_ids, q_code, t_codes, any_target=True):
     if any_target:
         # If any target works, I can just sum them up.
         # Predicting multiple interesting targets will help to some extent! (sum)
-        avl_mod = np.clip(np.sum(avl_mod, axis=1, keepdims=True), a_min=None, a_max=1)
+        avl_mod = np.sum(avl_mod, axis=1, keepdims=True)
+        
+        ones_idx = np.where(avl_mod > 0.)
+        avl_mod[:] = 0
+        avl_mod[ones_idx] = 1
+
+        #avl_mod = np.clip(np.max(avl_mod, axis=1, keepdims=True), a_min=0, a_max=1)
 
     return avl_mod
 

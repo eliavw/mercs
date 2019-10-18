@@ -1,7 +1,11 @@
+from functools import wraps
+
 import numpy as np
+
+from ..composition.CanonicalModel import CanonicalModel
+from ..utils import code_to_query, debug_print, get_att
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
-from ..utils import code_to_query, debug_print, get_att
 
 VERBOSITY = 0
 
@@ -115,7 +119,10 @@ def _learn_model(data, desc_ids, targ_ids, learner, out_kind="numeric", **kwargs
         print(e)
 
     # Bookkeeping
+    # model = CanonicalModel(model, desc_ids, targ_ids, out_kind)
+
     model.desc_ids = desc_ids
     model.targ_ids = targ_ids
     model.out_kind = out_kind
+
     return model

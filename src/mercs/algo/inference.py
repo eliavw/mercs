@@ -255,9 +255,9 @@ def _map_classes(classes, all_classes):
 
 def _select_numeric(idx):
     def select(X):
-        if len(X.shape) > 1:
-            return X[:, idx]
-        elif len(X.shape) == 1:
+        if X.ndim == 2:
+            return X.take(idx, axis=1)
+        else:
             return X
 
     return select

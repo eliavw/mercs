@@ -1,9 +1,3 @@
-from .prediction import (
-    mi_algorithm,
-    ma_algorithm,
-    mrai_algorithm,
-    it_algorithm,
-    rw_algorithm,
-)
+from .new_prediction import (mi, mrai, it, rw)
 
 from .selection import base_selection_algorithm, random_selection_algorithm
