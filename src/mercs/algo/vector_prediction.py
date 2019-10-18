@@ -1,5 +1,8 @@
 import numpy as np
 
+from ..utils import code_to_query, get_att_2d
+
+
 # Strategies
 def mi(m_codes, m_fimps, m_score, q_code, m_avl=None, random_state=997):
 
@@ -10,7 +13,7 @@ def mi(m_codes, m_fimps, m_score, q_code, m_avl=None, random_state=997):
     c_all = criterion(m_score, a_filter=a_tgt, m_filter=m_avl, aggregation=None)
 
     # Pick
-    m_sel = pick(c_all)
+    m_sel = pick(c_all, thresholds=None)
 
     return m_sel
 
@@ -38,7 +41,7 @@ def mrai(
         thresholds = _init_thresholds(init_threshold, stepsize)
 
     if a_src is None or a_tgt is None:
-        a_src, a_tgt, _ = code_to_query(q_code)
+        a_src, a_tgt, _ = code_to_query(q_code, return_sets=True)
 
     # Criterion
     c_src = criterion(m_fimps, a_filter=a_src, m_filter=m_avl, aggregation=True)
@@ -48,7 +51,7 @@ def mrai(
     # Pick
     m_sel = pick(
         c_all,
-        thresholds,
+        thresholds=thresholds,
         any_target=any_target,
         stochastic=stochastic,
         random_state=random_state,
@@ -104,7 +107,7 @@ def it(
         )
 
         a_prd = get_att_2d(m_codes[step_m_sel, :], kind="targ")
-
+        
         a_src = np.union1d(a_src, a_prd)
         a_tgt = np.setdiff1d(a_tgt, a_prd)
 
@@ -135,19 +138,16 @@ def criterion(m_matrix, m_filter, a_filter, aggregation=None):
     """
     nb_rows = m_matrix.shape[0]
     nb_cols = len(a_filter)
-
-    c_matrix = np.zeros((nb_rows, nb_cols), dtype=np.int16)
+    
+    c_matrix = np.zeros((nb_rows, nb_cols), dtype=np.float32)
 
     m_idx = a_filter + m_filter.reshape(-1, 1) * m_matrix.shape[1]
     c_matrix[m_filter, :] = m_matrix.take(m_idx.flat).reshape(nb_rows, nb_cols)
 
-    # c_matrix[m_filter, :] = m_matrix[np.ix_(m_filter,a_filter)]
-    # c_matrix[m_filter, :] = m_matrix[m_filter, :][:, a_filter]
-
     if aggregation is None:
         return c_matrix
     else:
-        return np.sum(c_matrix, axis=1).reshape(-1, 1).astype(np.int16)
+        return np.sum(c_matrix, axis=1).reshape(-1, 1).astype(np.float32)
 
 
 # Picks
@@ -156,7 +156,7 @@ def pick(
 ):
 
     if thresholds is None:
-        return np.where(criteria >= 0)[0].astype(np.int32)
+        return np.where(criteria >= 0)[0]
     else:
         m_sel = []
 
@@ -172,12 +172,12 @@ def pick(
                 )
             )
 
-        return np.unique(m_sel).astype(np.int32)
+        return np.unique(m_sel)
 
 
 def _greedy_pick(c_all, thresholds=None, **kwargs):
     for thr in thresholds:
-        m_sel = np.where(c_all > thr)[0].astype(np.int32)
+        m_sel = np.where(c_all > thr)[0]
         if _stopping_criterion_greedy_pick(m_sel):
             break
     return m_sel
@@ -193,7 +193,7 @@ def _stochastic_pick(c_all, random_state=997, **kwargs):
         distribution = np.full(len(c_all), 1 / len(c_all))
 
     draw = np.random.multinomial(1, distribution, size=1)
-    return np.where(draw == 1)[1].astype(np.int32)
+    return np.where(draw == 1)[1]
 
 
 # Stopping Criteria
@@ -207,8 +207,4 @@ def _stopping_criterion_greedy_pick(m_sel):
 
 # Helpers
 def _init_thresholds(init_threshold, stepsize):
-
-    thresholds = (
-        np.round(np.arange(init_threshold, -stepsize, -stepsize), decimals=4) * 10 ** 4
-    )
-    return thresholds.astype(np.int16, copy=False)
+    return np.arange(init_threshold, -stepsize, -stepsize, dtype=np.float32)

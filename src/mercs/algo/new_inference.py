@@ -1,5 +1,7 @@
 import networkx as nx
 import numpy as np
+from dask import delayed
+from functools import partial
 
 from ..composition import o
 
@@ -39,7 +41,7 @@ def inference_algorithm(g, m_list, i_list, data, nominal_ids):
 
 # Specific Nodes
 def dask_input_data_node(g, node, g_desc_ids, data):
-    g.node[node]["dask"] = delayed(_select_numeric(g_desc_ids.index(idx)))(data)
+    g.node[node]["dask"] = delayed(_select_numeric(g_desc_ids.index(node[1])))(data)
     return
 
 

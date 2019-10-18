@@ -2,10 +2,12 @@ from functools import wraps
 
 import numpy as np
 
+import warnings
 from ..composition.CanonicalModel import CanonicalModel
 from ..utils import code_to_query, debug_print, get_att
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
+from joblib import Parallel, delayed
 
 VERBOSITY = 0
 
@@ -14,11 +16,14 @@ def base_induction_algorithm(
     data,
     m_codes,
     metadata,
-    classifier=DecisionTreeClassifier,
-    regressor=DecisionTreeRegressor,
-    classifier_kwargs=None,
-    regressor_kwargs=None,
+    classifier,
+    regressor,
+    classifier_kwargs,
+    regressor_kwargs,
     random_state=997,
+    parallel=False,
+    n_jobs=1,
+    verbose=0,
 ):
     """
     Basic induction algorithm. Models according to the m_codes it receives.
@@ -55,19 +60,16 @@ def base_induction_algorithm(
     assert not (attributes - nominal_attributes - numeric_attributes), msg
 
     # Codes to queries
-    ids = [(d, t) for d, t, _ in [code_to_query(m_code, return_list=True) for m_code in m_codes]]
+    ids = [
+        (d, t)
+        for d, t, _ in [code_to_query(m_code, return_list=True) for m_code in m_codes]
+    ]
 
     np.random.seed(random_state)
-    random_states = np.random.randint(10**4, size=(len(ids)))
+    random_states = np.random.randint(10 ** 4, size=(len(ids)))
 
+    parameters = []
     for idx, (desc_ids, targ_ids) in enumerate(ids):
-        msg = """
-        Learning model with desc ids:    {}
-                            targ ids:    {}
-        """.format(
-            desc_ids, targ_ids
-        )
-        debug_print(msg, level=1, V=VERBOSITY)
 
         if set(targ_ids).issubset(nominal_attributes):
             kwargs = classifier_kwargs
@@ -83,14 +85,26 @@ def base_induction_algorithm(
             """
             raise ValueError(msg)
 
-        kwargs['random_state'] = random_states[idx]
+        kwargs["random_state"] = random_states[idx]
 
         # Learn a model for current desc_ids-targ_ids combo
-        m = _learn_model(data, desc_ids, targ_ids, learner, out_kind, **kwargs)
-        m_list.append(m)
+        tup = (data, desc_ids, targ_ids, learner, out_kind)
+        parameters.append((tup, kwargs))
+
+    if n_jobs > 1:
+        msg = """
+        Training is being parallellized using Joblib. Number of jobs = {}
+        """.format(
+            n_jobs
+        )
+        warnings.warn(msg)
+        m_list = Parallel(n_jobs=n_jobs, verbose=verbose)(
+            delayed(_learn_model)(*t, **k) for t, k in parameters
+        )
+    else:
+        m_list = [_learn_model(*t, **k) for t, k in parameters]
 
     return m_list
-
 
 
 def _learn_model(data, desc_ids, targ_ids, learner, out_kind="numeric", **kwargs):

@@ -10,11 +10,17 @@ from sklearn.impute import SimpleImputer
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from xgboost import XGBClassifier, XGBRegressor
 
-from ..algo import inference, selection, new_prediction
+from ..algo import (
+    inference,
+    new_inference,
+    new_prediction,
+    selection,
+    vector_prediction,
+)
 from ..algo.induction import base_induction_algorithm
 from ..composition import CompositeModel, o, x
-from ..graph import model_to_graph, get_targ, compose_all
-from ..utils import DESC_ENCODING, TARG_ENCODING, MISS_ENCODING
+from ..graph import compose_all, get_targ, model_to_graph
+from ..utils import DESC_ENCODING, MISS_ENCODING, TARG_ENCODING, code_to_query
 from ..visuals import save_diagram, show_diagram
 
 
@@ -44,24 +50,29 @@ class Mercs(object):
         "mrai": new_prediction.mrai,
         "it": new_prediction.it,
         "rw": new_prediction.rw,
+        "vmi": vector_prediction.mi,
+        "vmrai": vector_prediction.mrai,
+        "vit": vector_prediction.it,
     }
 
     inference_algorithms = {
         "base": inference.base_inference_algorithm,
         "dask": inference.dask_inference_algorithm,
+        "ndask": new_inference.inference_algorithm,
     }
 
     # Used in parse kwargs to identify parameters. If this identification goes wrong, you are sending settings
     # somewhere you do not want them to be. So, this is a tricky part, and moreover hardcoded. In other words:
     # this is risky terrain, and should probably be done differently in the future.
-    configuration_prefixes = {
-        "selection": ["selection", "sel"],
-        "prediction": ["prediction", "pred", "prd"],
-        "inference": ["inference", "infr", "inf"],
-        "classification": ["classification", "classifier", "clf"],
-        "regression": ["regression", "regressor", "rgr"],
-        "metadata": ["metadata", "meta", "mtd"],
-    }
+    configuration_prefixes = dict(
+        induction={"induction", "ind"},
+        selection={"selection", "sel"},
+        prediction={"prediction", "pred", "prd"},
+        inference={"inference", "infr", "inf"},
+        regression={"classification", "classifier", "clf"},
+        classification={"regression", "regressor", "rgr"},
+        metadata={"metadata", "meta", "mtd"},
+    )
 
     def __init__(
         self,
@@ -108,6 +119,7 @@ class Mercs(object):
         self.q_methods = []
 
         # Configurations
+        self.ind_cfg = self._default_config(self.induction_algorithm)
         self.sel_cfg = self._default_config(self.selection_algorithm)
         self.clf_cfg = self._default_config(self.classifier_algorithm)
         self.rgr_cfg = self._default_config(self.regressor_algorithm)
@@ -115,6 +127,7 @@ class Mercs(object):
         self.inf_cfg = self._default_config(self.inference_algorithm)
 
         self.configuration = dict(
+            induction=self.ind_cfg,
             selection=self.sel_cfg,
             classification=self.clf_cfg,
             regression=self.rgr_cfg,
@@ -132,19 +145,6 @@ class Mercs(object):
         return
 
     def fit(self, X, **kwargs):
-        """
-
-        Parameters
-        ----------
-        X:      np.ndarray,
-                training data.
-        kwargs
-
-        Returns
-        -------
-
-        """
-
         assert isinstance(X, np.ndarray)
         tic = default_timer()
 
@@ -160,28 +160,82 @@ class Mercs(object):
             X,
             self.m_codes,
             self.metadata,
-            classifier=self.classifier_algorithm,
-            regressor=self.regressor_algorithm,
-            classifier_kwargs=self.clf_cfg,
-            regressor_kwargs=self.rgr_cfg,
-            random_state=self.configuration.get("random_state", 42),
+            self.classifier_algorithm,
+            self.regressor_algorithm,
+            self.clf_cfg,
+            self.rgr_cfg,
+            **self.ind_cfg
         )
 
-        self._update_g_list()
-        self._update_fi()
+        self._update_m_fimps()
+        self._update_m_score()
         self._update_t_codes()
+        self._update_g_list()
 
         toc = default_timer()
         self.model_data["ind_time"] = toc - tic
 
         return
 
-    def predict(self, X, q_code=None, prediction_algorithm=None, reuse=False, **kwargs):
+    def predict(self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs):
+        if beta:
+            return self.predict_beta(
+                X, q_code=None, prediction_algorithm=None, **kwargs
+            )
+        else:
+            # Update configuration if necessary
+            if q_code is None:
+                q_code = self._default_q_code()
+
+            if prediction_algorithm is not None:
+                reuse = False
+                self._reconfig_prediction(
+                    prediction_algorithm=prediction_algorithm, **kwargs
+                )
+
+            # Adjust data
+            tic_prediction = default_timer()
+            self.q_code = q_code
+            self.q_desc_ids, self.q_targ_ids, _ = code_to_query(
+                self.q_code, return_list=True
+            )
+
+            # Make query-diagram
+            self.q_diagram = self.prediction_algorithm(
+                self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
+            )
+
+            toc_prediction = default_timer()
+
+            tic_dask = default_timer()
+            if isinstance(self.q_diagram, list):
+                self.q_diagrams = self.q_diagram
+                self.q_models = [self._get_q_model(d, X) for d in self.q_diagram]
+                self.q_diagram, self.q_model = self.merge_models(self.q_models)
+            else:
+                self.q_model = self._get_q_model(self.q_diagram, X)
+            toc_dask = default_timer()
+
+            tic_compute = default_timer()
+            res = self.q_model.predict.compute()
+            toc_compute = default_timer()
+
+            # Diagnostics
+            self.model_data["prd_time"] = toc_prediction - tic_prediction
+            self.model_data["dsk_time"] = toc_dask - tic_dask
+            self.model_data["cmp_time"] = toc_compute - tic_compute
+            self.model_data["inf_time"] = toc_compute - tic_prediction
+            self.model_data["ratios"] = (
+                self.model_data["prd_time"] / self.model_data["inf_time"],
+                self.model_data["dsk_time"] / self.model_data["inf_time"],
+                self.model_data["cmp_time"] / self.model_data["inf_time"],
+            )
+            return res
+
+    def predict_beta(self, X, q_code=None, prediction_algorithm=None, **kwargs):
+        # Update configuration if necessary
         if q_code is None:
             q_code = self._default_q_code()
-
-        if not np.array_equal(self.q_code, q_code):
-            reuse = False
 
         if prediction_algorithm is not None:
             reuse = False
@@ -189,15 +243,16 @@ class Mercs(object):
                 prediction_algorithm=prediction_algorithm, **kwargs
             )
 
-        tic_prediction = default_timer()
         # Adjust data
+        tic_prediction = default_timer()
         self.q_code = q_code
-        self.q_desc_ids = np.where(q_code == DESC_ENCODING)[0].tolist()
-        self.q_targ_ids = np.where(q_code == TARG_ENCODING)[0].tolist()
+        self.q_desc_ids, self.q_targ_ids, _ = code_to_query(
+            self.q_code, return_list=True
+        )
 
-        # Make custom diagram
-        self.q_diagram = self.prediction_algorithm(
-            self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
+        # Make query-diagram
+        m_sel = self.prediction_algorithm(
+            self.m_codes, self.m_fimps, self.m_score, q_code, **self.prd_cfg
         )
 
         toc_prediction = default_timer()
@@ -215,11 +270,11 @@ class Mercs(object):
         res = self.q_model.predict.compute()
         toc_compute = default_timer()
 
+        # Diagnostics
         self.model_data["prd_time"] = toc_prediction - tic_prediction
         self.model_data["dsk_time"] = toc_dask - tic_dask
         self.model_data["cmp_time"] = toc_compute - tic_compute
         self.model_data["inf_time"] = toc_compute - tic_prediction
-
         self.model_data["ratios"] = (
             self.model_data["prd_time"] / self.model_data["inf_time"],
             self.model_data["dsk_time"] / self.model_data["inf_time"],
@@ -294,14 +349,22 @@ class Mercs(object):
         ]
         return
 
-    def _update_fi(self):
+    def _update_m_fimps(self):
 
-        self.fi = np.zeros(self.m_codes.shape)
+        init = np.zeros(self.m_codes.shape)
 
         for m_idx, mod in enumerate(self.m_list):
 
-            self.fi[m_idx, list(mod.desc_ids)] = mod.feature_importances_
+            init[m_idx, list(mod.desc_ids)] = mod.feature_importances_
+            self.fi = init
 
+            self.m_fimps = init.astype(np.float32)
+
+        return
+
+    def _update_m_score(self):
+        # Eventually, these should be decent estimates
+        self.m_score = (self.m_codes == TARG_ENCODING).astype(np.float32)
         return
 
     def _update_t_codes(self):
@@ -320,16 +383,16 @@ class Mercs(object):
             i_config = dict(missing_values=np.nan)
 
             if c in self.metadata["nominal_attributes"]:
-                i_config['strategy'] = "most_frequent"
+                i_config["strategy"] = "most_frequent"
             elif (
                 self.classifier_algorithm == XGBClassifier
                 or self.regressor_algorithm == XGBRegressor
             ):
                 # So basically, do nothing. XGB copes.
-                i_config['strategy'] = "constant"
-                i_config['fill_value'] = np.nan
+                i_config["strategy"] = "constant"
+                i_config["fill_value"] = np.nan
             else:
-                i_config['strategy'] = "mean"
+                i_config["strategy"] = "mean"
 
             i = SimpleImputer(**i_config)
             i.fit(X[:, [c]])

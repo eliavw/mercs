@@ -31,6 +31,7 @@ def random_selection_algorithm(
             )
         m_codes = np.vstack(codes)
         return m_codes
+    
     else:
         # Init
         np.random.seed(random_state)
@@ -51,7 +52,7 @@ def random_selection_algorithm(
         m_codes = np.vstack(codes)
 
         m_codes = _ensure_desc_atts(m_codes)
-        return m_codes
+        return m_codes.astype(np.int8)
 
 
 def _single_iteration_random_selection(
@@ -66,7 +67,7 @@ def _single_iteration_random_selection(
 
     m_codes = _set_targets(m_codes, target_sets)
     m_codes = _set_missing(m_codes, fraction_missing)
-    m_codes.astype(int)
+    m_codes
     return m_codes
 
 
@@ -132,7 +133,7 @@ def _nb_models_and_deficit(nb_targets, potential_targets):
 
 
 def _init(nb_models, nb_attributes):
-    return np.zeros((nb_models, nb_attributes), dtype=int)
+    return np.zeros((nb_models, nb_attributes), dtype=np.int8)
 
 
 def _target_sets(potential_targets, nb_targets, nb_models, deficit):

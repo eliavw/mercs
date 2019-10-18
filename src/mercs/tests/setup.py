@@ -1,13 +1,55 @@
+import os
+from os.path import dirname
+
 import numpy as np
 import pandas as pd
-
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 
 RANDOM_STATE = 42
 
 
-def default_dataset(random_state=997, n_samples=10 ** 3, n_features=7, df=False):
+def data_directory():
+    test_dir = dirname(__file__)
+    data_dir = os.path.join(test_dir, "data")  # Slight HARDCODE!
+    return data_dir
+
+
+def filename_data(dataset="iris", kind="train", separator="-", extension="csv"):
+
+    data_dir = data_directory()
+    filename = separator.join([dataset, kind]) + ".{}".format(extension)
+    return os.path.join(data_dir, filename)
+
+
+def _detect_nominal(df):
+    nominal_columns = set(df.select_dtypes(exclude=['float']).columns)
+    
+    nominal_ids = {i for i,c in enumerate(df.columns) if c in nominal_columns}
+    
+    return nominal_ids
+
+
+def load_iris(df=False, nominal_ids=True):
+
+    fn_train = filename_data(dataset="iris", kind="train")
+    fn_test = filename_data(dataset="iris", kind="test")
+
+    df_train = pd.read_csv(fn_train, header=None)
+    df_test = pd.read_csv(fn_test, header=None)
+
+    result = []
+    result.append(df_train if df else df_train.values)
+    result.append(df_test if df else df_test.values)
+    
+    if nominal_ids:
+        result.append(_detect_nominal(df_train))
+
+    return result
+
+def default_dataset(
+    random_state=RANDOM_STATE, n_samples=10 ** 3, n_features=7, df=False
+):
     """
     Generate a dataset to be used in tests.
 

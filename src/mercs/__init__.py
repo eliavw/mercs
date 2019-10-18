@@ -1,5 +1,6 @@
 from pkg_resources import get_distribution, DistributionNotFound
-from .core import Mercs
+
+from . import algo, composition, core, graph, tests, utils, visuals
 
 try:
     # Change here if project is renamed and does not equal the package name
