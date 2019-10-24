@@ -17,6 +17,7 @@ def inference_algorithm(g, m_list, i_list, data, nominal_ids):
     nb_rows, _ = data.shape
 
     g_desc_ids = list(g.desc_ids)
+    data = delayed(data[:, g_desc_ids])
 
     for n in nodes:
         if data_node(*n):
@@ -30,9 +31,9 @@ def inference_algorithm(g, m_list, i_list, data, nominal_ids):
                 else:
                     dask_numeric_data_node(g, n, m_list)
         elif model_node(*n):
-            f[n] = dask_model_node(g, n, m_list)
+            dask_model_node(g, n, m_list)
         elif imputation_node(*n):
-            f[n] = dask_imputation_node(g, n, i_list, nb_rows)
+            dask_imputation_node(g, n, i_list, nb_rows)
         else:
             raise ValueError("Did not recognize node kind of {}".format(n))
 
@@ -63,7 +64,8 @@ def dask_imputation_node(g, node, i_list, nb_rows):
 
     f1 = _dummy_array
     f2 = i_list[node[1]].transform
-    f = o(f2, f1)
+    f3 = np.ravel
+    f = o(f3, o(f2, f1))
 
     g.node[node]["dask"] = delayed(f)(nb_rows)
     return
@@ -91,16 +93,19 @@ def dask_nominal_data_node(g, node, m_list):
             parent_functions.append(f1)
 
     f3 = delayed(partial(np.sum, axis=0))(parent_functions)
-
+    g.node[node]["dask_proba"] = f3
+    g.node[node]["classes"] = classes
+    
     # Vote
     def vote(X):
         return classes.take(np.argmax(X, axis=1), axis=0)
-
+    
     g.node[node]["dask"] = delayed(vote)(f3)
     return
 
 
 def dask_numeric_data_node(g, node, m_list):
+
     idx_fnc = _get_parents_of_numeric_data_node(g, m_list, node)
 
     parent_functions = [delayed(_select_numeric(idx))(fnc) for idx, fnc in idx_fnc]
@@ -116,27 +121,28 @@ def _get_parents_of_model_node(g, node):
 
 
 def _get_parents_of_numeric_data_node(g, m_list, node):
-    rel_idx = lambda p_idx, n_idx: list(m_list[p_idx].targ_ids).index(n_idx)
+    rel_idx = lambda p_idx, n_idx: m_list[p_idx].targ_ids.index(n_idx) 
+    
 
-    parents = [(m, p_idx) for m, p_idx in g.predecessors(node)]
+    parents = ((m, p_idx) for m, p_idx in g.predecessors(node))
 
     idx_fnc = [
-        (rel_idx(p_idx, node[1]), g.node[(m, p_idx)]["dask"]) for m, p_idx in parents
+        (rel_idx(p_idx, node[1]) if m=='M' else 0, g.node[(m, p_idx)]["dask"]) for m, p_idx in parents
     ]
 
     return idx_fnc
 
 
 def _get_parents_of_nominal_data_node(g, m_list, node):
-    rel_idx = lambda p_idx, n_idx: list(m_list[p_idx].targ_ids).index(n_idx)
+    rel_idx = lambda p_idx, n_idx: m_list[p_idx].targ_ids.index(n_idx)
     classes = lambda p_idx, r_idx: m_list[p_idx].classes_[r_idx]
 
-    parents = [(m, p_idx) for m, p_idx in g.predecessors(node)]
+    parents = ((m, p_idx) for m, p_idx in g.predecessors(node))
 
-    idx_fnc = [
-        (rel_idx(p_idx, node[1]), p_idx, g.node[(m, p_idx)]["dask"])
+    idx_fnc = (
+        (rel_idx(p_idx, node[1]) if m=='M' else 0, p_idx, g.node[(m, p_idx)]["dask"])
         for m, p_idx in parents
-    ]
+    )
     idx_cls_fnc = [(r_idx, classes(p_idx, r_idx), f) for r_idx, p_idx, f in idx_cls_fnc]
 
     return idx_cls_fnc

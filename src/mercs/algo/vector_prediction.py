@@ -2,9 +2,11 @@ import numpy as np
 
 from ..utils import code_to_query, get_att_2d
 
-
 # Strategies
 def mi(m_codes, m_fimps, m_score, q_code, m_avl=None, random_state=997):
+
+    if m_avl is None:
+        m_avl = np.arange(m_codes.shape[0], dtype=np.int16)
 
     # Init
     a_src, a_tgt, _ = code_to_query(q_code)
@@ -22,7 +24,7 @@ def mrai(
     m_codes,
     m_fimps,
     m_score,
-    q_code=None,
+    q_code,
     a_src=None,
     a_tgt=None,
     m_avl=None,
@@ -41,21 +43,23 @@ def mrai(
         thresholds = _init_thresholds(init_threshold, stepsize)
 
     if a_src is None or a_tgt is None:
-        a_src, a_tgt, _ = code_to_query(q_code, return_sets=True)
+        a_src, a_tgt, _ = code_to_query(q_code)
 
     # Criterion
     c_src = criterion(m_fimps, a_filter=a_src, m_filter=m_avl, aggregation=True)
     c_tgt = criterion(m_score, a_filter=a_tgt, m_filter=m_avl, aggregation=None)
-    c_all = c_src.reshape(-1, 1) * c_tgt + c_tgt
+    # c_all = (c_src.reshape(-1, 1) * c_tgt + c_tgt) / 2
+    c_all = c_src.reshape(-1, 1) * c_tgt
 
     # Pick
-    m_sel = pick(
+    m_sel_idx = pick(
         c_all,
         thresholds=thresholds,
         any_target=any_target,
         stochastic=stochastic,
         random_state=random_state,
     )
+    m_sel = m_avl[m_sel_idx]
 
     return m_sel
 
@@ -97,6 +101,7 @@ def it(
             m_codes,
             m_fimps,
             m_score,
+            None,
             a_src=a_src,
             a_tgt=a_tgt,
             m_avl=m_avl,
@@ -107,7 +112,7 @@ def it(
         )
 
         a_prd = get_att_2d(m_codes[step_m_sel, :], kind="targ")
-        
+
         a_src = np.union1d(a_src, a_prd)
         a_tgt = np.setdiff1d(a_tgt, a_prd)
 
@@ -138,11 +143,13 @@ def criterion(m_matrix, m_filter, a_filter, aggregation=None):
     """
     nb_rows = m_matrix.shape[0]
     nb_cols = len(a_filter)
-    
+
     c_matrix = np.zeros((nb_rows, nb_cols), dtype=np.float32)
 
     m_idx = a_filter + m_filter.reshape(-1, 1) * m_matrix.shape[1]
-    c_matrix[m_filter, :] = m_matrix.take(m_idx.flat).reshape(nb_rows, nb_cols)
+    #c_matrix[m_filter, :] = m_matrix.take(m_idx.flat).reshape(len(m_filter), nb_cols)
+    
+    c_matrix = m_matrix.take(m_idx.flat).reshape(len(m_filter), nb_cols)
 
     if aggregation is None:
         return c_matrix
@@ -176,6 +183,7 @@ def pick(
 
 
 def _greedy_pick(c_all, thresholds=None, **kwargs):
+
     for thr in thresholds:
         m_sel = np.where(c_all > thr)[0]
         if _stopping_criterion_greedy_pick(m_sel):

@@ -18,8 +18,8 @@ from ..algo import (
     vector_prediction,
 )
 from ..algo.induction import base_induction_algorithm
-from ..composition import CompositeModel, o, x
-from ..graph import compose_all, get_targ, model_to_graph
+from ..composition import CompositeModel, o, x, NewCompositeModel
+from ..graph import compose_all, get_targ, model_to_graph, build_diagram
 from ..utils import DESC_ENCODING, MISS_ENCODING, TARG_ENCODING, code_to_query
 from ..visuals import save_diagram, show_diagram
 
@@ -180,7 +180,7 @@ class Mercs(object):
     def predict(self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs):
         if beta:
             return self.predict_beta(
-                X, q_code=None, prediction_algorithm=None, **kwargs
+                X, q_code=q_code, prediction_algorithm=prediction_algorithm, **kwargs
             )
         else:
             # Update configuration if necessary
@@ -238,51 +238,31 @@ class Mercs(object):
             q_code = self._default_q_code()
 
         if prediction_algorithm is not None:
-            reuse = False
             self._reconfig_prediction(
                 prediction_algorithm=prediction_algorithm, **kwargs
             )
 
         # Adjust data
-        tic_prediction = default_timer()
         self.q_code = q_code
         self.q_desc_ids, self.q_targ_ids, _ = code_to_query(
             self.q_code, return_list=True
         )
 
         # Make query-diagram
-        m_sel = self.prediction_algorithm(
-            self.m_codes, self.m_fimps, self.m_score, q_code, **self.prd_cfg
+        self.m_sel = self.prediction_algorithm(
+            self.m_codes, self.m_fimps, self.m_score, q_code=self.q_code, **self.prd_cfg
         )
 
-        toc_prediction = default_timer()
+        self.q_diagram = self._build_q_diagram(self.m_sel)
+        self.q_model = self._build_q_model(X)
 
-        tic_dask = default_timer()
-        if isinstance(self.q_diagram, list):
-            self.q_diagrams = self.q_diagram
-            self.q_models = [self._get_q_model(d, X) for d in self.q_diagram]
-            self.q_diagram, self.q_model = self.merge_models(self.q_models)
-        else:
-            self.q_model = self._get_q_model(self.q_diagram, X)
-        toc_dask = default_timer()
-
-        tic_compute = default_timer()
-        res = self.q_model.predict.compute()
-        toc_compute = default_timer()
-
-        # Diagnostics
-        self.model_data["prd_time"] = toc_prediction - tic_prediction
-        self.model_data["dsk_time"] = toc_dask - tic_dask
-        self.model_data["cmp_time"] = toc_compute - tic_compute
-        self.model_data["inf_time"] = toc_compute - tic_prediction
-        self.model_data["ratios"] = (
-            self.model_data["prd_time"] / self.model_data["inf_time"],
-            self.model_data["dsk_time"] / self.model_data["inf_time"],
-            self.model_data["cmp_time"] / self.model_data["inf_time"],
-        )
-        return res
+        return self.q_model.predict.compute()
 
     # Diagrams
+    def _build_q_diagram(self, m_sel):
+
+        return build_diagram(self.m_list, m_sel, self.q_code, prune=True)
+
     def show_q_diagram(self, kind="svg", fi=False, ortho=False, **kwargs):
         return show_diagram(self.q_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
 
@@ -290,6 +270,27 @@ class Mercs(object):
         return save_diagram(self.q_diagram, fname, kind=kind, fi=fi, ortho=ortho)
 
     # Inference
+    def _build_q_model(self, X):
+        try:
+            self.inference_algorithm(
+                self.q_diagram, self.m_list, self.i_list, X, self.metadata.get("nominal_attributes")
+            )
+        except NetworkXUnfeasible:
+            cycle = find_cycle(self.q_diagram, orientation="original")
+            msg = """
+            Topological sort failed, investigate diagram to debug.
+            
+            I will never be able to squeeze a prediction out of a diagram with a loop.
+            
+            Cycle was:  {}
+            """.format(
+                cycle
+            )
+            raise RecursionError(msg)
+
+        q_model = NewCompositeModel(self.q_diagram)
+        return q_model
+
     def merge_models(self, q_models):
 
         types = self._get_types(self.metadata)
@@ -340,7 +341,6 @@ class Mercs(object):
 
         q_model = CompositeModel(q_diagram)
         return q_model
-
     # Graphs
     def _update_g_list(self):
         types = self._get_types(self.metadata)

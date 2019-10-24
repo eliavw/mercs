@@ -10,6 +10,9 @@ NODE_PREFIXES = dict(data="D", model="M", imputation="I")
 
 
 def build_diagram(m_list, m_sel, q_code, g=None, prune=False):
+    if not isinstance(m_sel[0], (list, np.ndarray)):
+        m_sel = [m_sel]
+
     if g is None:
         g = nx.DiGraph()
 
@@ -44,15 +47,15 @@ def build_diagram_SL(models, a_src, f_tgt, g=None):
     for m_idx, m in models:
         for a in m.desc_ids:
             if valid_src(a):
-                e_src.add((_name(a, kind="data"), _name(m_idx, kind="model")))
+                e_src.add((v_name(a, kind="data"), v_name(m_idx, kind="model")))
                 f_tgt.add(a)
             else:
-                e_src.add((_name(a, kind="imputation"), _name(a, kind="data")))
+                e_src.add((v_name(a, kind="imputation"), v_name(m_idx, kind="model")))
 
     for m_idx, m in models:
         for a in m.targ_ids:
             if valid_tgt(a):
-                e_tgt.add((_name(m_idx, kind="model"), (_name(a, kind="data"))))
+                e_tgt.add((v_name(m_idx, kind="model"), (v_name(a, kind="data"))))
                 a_src.add(a)
 
     g.add_edges_from(e_src)
@@ -61,7 +64,7 @@ def build_diagram_SL(models, a_src, f_tgt, g=None):
 
 
 # Helpers
-def _name(idx, kind="model"):
+def v_name(idx, kind="model"):
     return (NODE_PREFIXES[kind], idx)
 
 
