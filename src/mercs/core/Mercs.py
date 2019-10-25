@@ -170,7 +170,7 @@ class Mercs(object):
         self._update_m_fimps()
         self._update_m_score()
         self._update_t_codes()
-        self._update_g_list()
+        #self._update_g_list()
 
         toc = default_timer()
         self.model_data["ind_time"] = toc - tic
@@ -341,6 +341,7 @@ class Mercs(object):
 
         q_model = CompositeModel(q_diagram)
         return q_model
+    
     # Graphs
     def _update_g_list(self):
         types = self._get_types(self.metadata)

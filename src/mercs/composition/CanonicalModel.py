@@ -39,16 +39,16 @@ class CanonicalModel(object):
             self.n_classes_ = self.model.n_classes_
 
             if single_target_sklearn_classifier(model):
-                self.predict = canonical_predict(self.model.predict)
-                self.predict_proba = canonical_predict_proba(self.model.predict_proba)
+                # self.predict = canonical_predict(self.model.predict)
+                # self.predict_proba = canonical_predict_proba(self.model.predict_proba)
                 self.classes_ = [self.model.classes_]
-                self.n_classes_ = [self.model.n_classes_]
+                # self.n_classes_ = [self.model.n_classes_]
 
         elif self.out_kind in {"numeric"}:
             self.predict = self.model.predict
 
-            if single_target_sklearn_regressor(model):
-                self.predict = canonical_predict(self.model.predict)
+            #if single_target_sklearn_regressor(model):
+            #    self.predict = canonical_predict(self.model.predict)
 
         else:
             raise NotImplementedError(

@@ -133,10 +133,10 @@ def _learn_model(data, desc_ids, targ_ids, learner, out_kind="numeric", **kwargs
         print(e)
 
     # Bookkeeping
-    # model = CanonicalModel(model, desc_ids, targ_ids, out_kind)
+    model = CanonicalModel(model, desc_ids, targ_ids, out_kind)
 
-    model.desc_ids = desc_ids
-    model.targ_ids = targ_ids
-    model.out_kind = out_kind
+    #model.desc_ids = desc_ids
+    #model.targ_ids = targ_ids
+    #model.out_kind = out_kind
 
     return model

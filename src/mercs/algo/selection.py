@@ -61,9 +61,9 @@ def _single_iteration_random_selection(
     nb_models, deficit = _nb_models_and_deficit(nb_targets, potential_targets)
 
     # Init
-    m_codes = _init(nb_models, nb_attributes)
+    target_sets, nb_models = _target_sets(potential_targets, nb_targets, nb_models, deficit)
 
-    target_sets = _target_sets(potential_targets, nb_targets, nb_models, deficit)
+    m_codes = _init(nb_models, nb_attributes)
 
     m_codes = _set_targets(m_codes, target_sets)
     m_codes = _set_missing(m_codes, fraction_missing)
@@ -123,8 +123,8 @@ def _nb_models_and_deficit(nb_targets, potential_targets):
     nb_leftover_targets = nb_potential_targets % nb_targets
 
     if nb_leftover_targets:
-        nb_models = nb_models_with_regular_nb_targets + 1
-        deficit = nb_targets - nb_leftover_targets
+        nb_models = nb_models_with_regular_nb_targets 
+        deficit = nb_leftover_targets
     else:
         nb_models = nb_models_with_regular_nb_targets
         deficit = 0
@@ -137,10 +137,21 @@ def _init(nb_models, nb_attributes):
 
 
 def _target_sets(potential_targets, nb_targets, nb_models, deficit):
-    np.random.shuffle(potential_targets)
-    choices = np.r_[potential_targets, potential_targets[:deficit]]
 
-    return np.random.choice(choices, replace=False, size=(nb_models, nb_targets))
+    nb_targets = min(len(potential_targets), nb_targets)
+    
+    np.random.shuffle(potential_targets)
+
+    choices = potential_targets[deficit:]
+    result = np.random.choice(choices, replace=False, size=(nb_models, nb_targets))
+
+    if deficit:
+        choices = potential_targets[:nb_targets] # This includes all the ones you left out!
+        extra = np.random.choice(choices, replace=False, size=(1, nb_targets))
+        result = np.vstack([result, extra])
+        nb_models += 1
+
+    return result, nb_models
 
 
 def _set_targets(m_codes, target_sets):

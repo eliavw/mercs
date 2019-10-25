@@ -1,17 +1,25 @@
+from functools import partial
+
 import networkx as nx
 import numpy as np
 from dask import delayed
-from functools import partial
 
 from ..composition import o
+from ..utils.inference_tools import (
+    _dummy_array,
+    _map_classes,
+    _pad_proba,
+    _select_nominal,
+    _select_numeric,
+)
 
 
 # Main algorithm
 def inference_algorithm(g, m_list, i_list, data, nominal_ids):
 
-    data_node = lambda k,n: k=='D'
-    model_node = lambda k,n: k=='M'
-    imputation_node = lambda k,n: k=='I'
+    data_node = lambda k, n: k == "D"
+    model_node = lambda k, n: k == "M"
+    imputation_node = lambda k, n: k == "I"
 
     nodes = list(nx.topological_sort(g))
     nb_rows, _ = data.shape
@@ -25,7 +33,7 @@ def inference_algorithm(g, m_list, i_list, data, nominal_ids):
                 dask_input_data_node(g, n, g_desc_ids, data)
             elif g.in_degree(n) == 1:
                 dask_single_data_node(g, n, m_list)
-            elif g.in_degree(n) > 1:
+            elif g.in_degree(n) > 0:
                 if n[1] in nominal_ids:
                     dask_nominal_data_node(g, n, m_list)
                 else:
@@ -55,7 +63,7 @@ def dask_model_node(g, node, m_list):
     g.node[node]["dask"] = delayed(m_list[node[1]].predict)(collector)
 
     if hasattr(m_list[node[1]], "predict_proba"):
-        g.node[node]["dask_proba"] = delayed(node["predict_proba"])(collector)
+        g.node[node]["dask_proba"] = delayed(m_list[node[1]].predict_proba)(collector)
 
     return
 
@@ -84,6 +92,7 @@ def dask_nominal_data_node(g, node, m_list):
 
     # Reduce
     parent_functions = []
+
     for idx, c, fnc in idx_cls_fnc:
         f1 = delayed(_select_nominal(idx))(fnc)
         if len(c) < len(classes):
@@ -94,12 +103,13 @@ def dask_nominal_data_node(g, node, m_list):
 
     f3 = delayed(partial(np.sum, axis=0))(parent_functions)
     g.node[node]["dask_proba"] = f3
+
     g.node[node]["classes"] = classes
-    
+
     # Vote
     def vote(X):
         return classes.take(np.argmax(X, axis=1), axis=0)
-    
+
     g.node[node]["dask"] = delayed(vote)(f3)
     return
 
@@ -121,13 +131,13 @@ def _get_parents_of_model_node(g, node):
 
 
 def _get_parents_of_numeric_data_node(g, m_list, node):
-    rel_idx = lambda p_idx, n_idx: m_list[p_idx].targ_ids.index(n_idx) 
-    
+    rel_idx = lambda p_idx, n_idx: m_list[p_idx].targ_ids.index(n_idx)
 
     parents = ((m, p_idx) for m, p_idx in g.predecessors(node))
 
     idx_fnc = [
-        (rel_idx(p_idx, node[1]) if m=='M' else 0, g.node[(m, p_idx)]["dask"]) for m, p_idx in parents
+        (rel_idx(p_idx, node[1]) if m == "M" else 0, g.node[(m, p_idx)]["dask"])
+        for m, p_idx in parents
     ]
 
     return idx_fnc
@@ -140,53 +150,13 @@ def _get_parents_of_nominal_data_node(g, m_list, node):
     parents = ((m, p_idx) for m, p_idx in g.predecessors(node))
 
     idx_fnc = (
-        (rel_idx(p_idx, node[1]) if m=='M' else 0, p_idx, g.node[(m, p_idx)]["dask"])
+        (
+            rel_idx(p_idx, node[1]) if m == "M" else 0,
+            p_idx,
+            g.node[(m, p_idx)]["dask_proba"],
+        )
         for m, p_idx in parents
     )
-    idx_cls_fnc = [(r_idx, classes(p_idx, r_idx), f) for r_idx, p_idx, f in idx_cls_fnc]
+    idx_cls_fnc = [(r_idx, classes(p_idx, r_idx), f) for r_idx, p_idx, f in idx_fnc]
 
     return idx_cls_fnc
-
-
-# Helpers - Data Handling
-def _dummy_array(nb_rows):
-    a = np.empty((nb_rows, 1))
-    a.fill(np.nan)
-    return a
-
-
-def _pad_proba(classes, all_classes):
-    idx = _map_classes(classes, all_classes)
-
-    def pad(X):
-        R = np.zeros((X.shape[0], len(all_classes)))
-        R[:, idx] = X
-        return R
-
-    return pad
-
-
-def _map_classes(classes, all_classes):
-    sorted_idx = np.argsort(all_classes)
-    matches = np.searchsorted(all_classes[sorted_idx], classes)
-    return sorted_idx[matches]
-
-
-def _select_numeric(idx):
-    def select(X):
-        if X.ndim == 2:
-            return X.take(idx, axis=1)
-        else:
-            return X
-
-    return select
-
-
-def _select_nominal(idx):
-    def select(X):
-        if isinstance(X, list):
-            return X[idx]
-        elif isinstance(X, np.ndarray):
-            return X
-
-    return select

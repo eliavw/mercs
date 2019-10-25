@@ -2,22 +2,22 @@ import numpy as np
 
 from ..utils import code_to_query, get_att_2d
 
+
 # Strategies
 def mi(m_codes, m_fimps, m_score, q_code, m_avl=None, random_state=997):
-
-    if m_avl is None:
-        m_avl = np.arange(m_codes.shape[0], dtype=np.int16)
-
-    # Init
-    a_src, a_tgt, _ = code_to_query(q_code)
-
-    # Criterion
-    c_all = criterion(m_score, a_filter=a_tgt, m_filter=m_avl, aggregation=None)
-
-    # Pick
-    m_sel = pick(c_all, thresholds=None)
-
-    return m_sel
+    return mrai(
+        m_codes,
+        m_fimps,
+        m_score,
+        q_code,
+        thresholds=False,
+        a_src=None,
+        a_tgt=None,
+        m_avl=m_avl,
+        any_target=False,
+        stochastic=False,
+        random_state=random_state,
+    )
 
 
 def mrai(
@@ -37,7 +37,7 @@ def mrai(
 ):
     # Init
     if m_avl is None:
-        m_avl = np.arange(m_codes.shape[0], dtype=np.int16)
+        m_avl = np.arange(m_codes.shape[0], dtype=np.int32)
 
     if thresholds is None:
         thresholds = _init_thresholds(init_threshold, stepsize)
@@ -46,9 +46,12 @@ def mrai(
         a_src, a_tgt, _ = code_to_query(q_code)
 
     # Criterion
-    c_src = criterion(m_fimps, a_filter=a_src, m_filter=m_avl, aggregation=True)
-    c_tgt = criterion(m_score, a_filter=a_tgt, m_filter=m_avl, aggregation=None)
-    # c_all = (c_src.reshape(-1, 1) * c_tgt + c_tgt) / 2
+    c_flt = criterion(m_score, m_filter=m_avl, a_filter=a_tgt, aggregation=True)
+    m_avl = m_avl[c_flt.flat > 0]
+
+    c_tgt = criterion(m_score, m_filter=m_avl, a_filter=a_tgt, aggregation=None)
+    c_src = criterion(m_fimps, m_filter=m_avl, a_filter=a_src, aggregation=True)
+
     c_all = c_src.reshape(-1, 1) * c_tgt
 
     # Pick
@@ -85,7 +88,7 @@ def it(
     a_tgt = np.hstack([q_targ, q_miss])
 
     if m_avl is None:
-        m_avl = np.arange(m_codes.shape[0], dtype=np.int16)
+        m_avl = np.arange(m_codes.shape[0], dtype=np.int32)
 
     for step in range(max_steps):
 
@@ -131,7 +134,7 @@ def it(
 
 
 # MRAI-IT-RW Criterion
-def criterion(m_matrix, m_filter, a_filter, aggregation=None):
+def criterion(m_matrix, m_filter=None, a_filter=None, aggregation=None):
     """
     Typical usecase 
     
@@ -141,15 +144,11 @@ def criterion(m_matrix, m_filter, a_filter, aggregation=None):
     a_filter = available attributes.
     
     """
-    nb_rows = m_matrix.shape[0]
+    nb_rows = len(m_filter)
     nb_cols = len(a_filter)
 
-    c_matrix = np.zeros((nb_rows, nb_cols), dtype=np.float32)
-
     m_idx = a_filter + m_filter.reshape(-1, 1) * m_matrix.shape[1]
-    #c_matrix[m_filter, :] = m_matrix.take(m_idx.flat).reshape(len(m_filter), nb_cols)
-    
-    c_matrix = m_matrix.take(m_idx.flat).reshape(len(m_filter), nb_cols)
+    c_matrix = m_matrix.take(m_idx.flat).reshape(nb_rows, nb_cols)
 
     if aggregation is None:
         return c_matrix
@@ -159,10 +158,10 @@ def criterion(m_matrix, m_filter, a_filter, aggregation=None):
 
 # Picks
 def pick(
-    criteria, thresholds=None, any_target=False, stochastic=False, random_state=997
+    criteria, thresholds=False, any_target=False, stochastic=False, random_state=997
 ):
 
-    if thresholds is None:
+    if thresholds is False:
         return np.where(criteria >= 0)[0]
     else:
         m_sel = []
@@ -185,7 +184,7 @@ def pick(
 def _greedy_pick(c_all, thresholds=None, **kwargs):
 
     for thr in thresholds:
-        m_sel = np.where(c_all > thr)[0]
+        m_sel = np.where(c_all >= thr)[0]
         if _stopping_criterion_greedy_pick(m_sel):
             break
     return m_sel
@@ -214,5 +213,9 @@ def _stopping_criterion_greedy_pick(m_sel):
 
 
 # Helpers
-def _init_thresholds(init_threshold, stepsize):
-    return np.arange(init_threshold, -stepsize, -stepsize, dtype=np.float32)
+def _init_thresholds(init_threshold, stepsize, tolerance=0.01):
+    thresholds = np.arange(init_threshold, -stepsize, -stepsize, dtype=np.float32)
+    
+    # Otherwise rounding errors in feature importances fuck your shit up.
+    thresholds[0] = thresholds[0]-tolerance
+    return thresholds

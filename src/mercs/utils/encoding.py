@@ -50,7 +50,6 @@ def get_att(code, kind="desc"):
 
 
 def get_att_2d(codes, kind="desc"):
-    # return np.unique(np.where(codes == ENCODING[kind])[1].astype(int))
     return np.unique(np.where(codes == ENCODING[kind])[1].astype(int))
 
 
