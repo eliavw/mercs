@@ -133,6 +133,96 @@ def it(
     return m_sel
 
 
+def rw(
+    m_codes,
+    m_fimps,
+    m_score,
+    q_code,
+    m_avl=None,
+    nb_walks=1,
+    max_steps=4,
+    init_threshold=1.0,
+    stepsize=0.1,
+    random_state=997,
+):
+
+    random_walks = [
+        walk(
+            m_codes,
+            m_fimps,
+            m_score,
+            q_code,
+            m_avl=m_avl,
+            max_steps=max_steps,
+            init_threshold=init_threshold,
+            stepsize=stepsize,
+            random_state=random_state + i,  # Otherwise you do identical walks!
+        )
+        for i in range(nb_walks)
+    ]
+
+
+    return tuple(random_walks)
+
+
+def walk(
+    m_codes,
+    m_fimps,
+    m_score,
+    q_code,
+    m_avl=None,
+    max_steps=4,
+    init_threshold=1.0,
+    stepsize=0.1,
+    random_state=997,
+):
+    m_sel = []
+    thresholds = _init_thresholds(init_threshold, stepsize)
+    any_target = True
+    stochastic = True
+
+    q_desc, q_targ, q_miss = code_to_query(q_code)
+    a_src = q_desc
+    a_tgt = q_targ
+
+    if m_avl is None:
+        m_avl = np.arange(m_codes.shape[0], dtype=np.int32)
+
+    for step in reversed(range(max_steps)):
+
+        step_m_sel = mrai(
+            m_codes,
+            m_fimps,
+            m_score,
+            None,
+            a_src=a_src,
+            a_tgt=a_tgt,
+            m_avl=m_avl,
+            stochastic=stochastic,
+            any_target=any_target,
+            thresholds=thresholds,
+            random_state=random_state,
+        )
+
+        # Potential targets = Descriptive attributes of the previous model
+        p_tgt = get_att_2d(m_codes[step_m_sel, :], kind="desc")
+
+        a_tgt = np.setdiff1d(p_tgt, a_src)
+
+        m_avl = np.setdiff1d(m_avl, step_m_sel)
+        m_sel.insert(0, step_m_sel)
+
+        if _stopping_criterion_rw(a_tgt, step):
+            break
+
+        if len(step_m_sel) == 0:
+            raise ValueError(
+                "No progress was made. This indicates an impossible query."
+            )
+
+    return m_sel
+
+
 # MRAI-IT-RW Criterion
 def criterion(m_matrix, m_filter=None, a_filter=None, aggregation=None):
     """
@@ -184,7 +274,7 @@ def pick(
 def _greedy_pick(c_all, thresholds=None, **kwargs):
 
     for thr in thresholds:
-        m_sel = np.where(c_all >= thr)[0]
+        m_sel = np.where(c_all >= np.quantile(c_all, 1.0-thr))[0]
         if _stopping_criterion_greedy_pick(m_sel):
             break
     return m_sel
@@ -195,15 +285,25 @@ def _stochastic_pick(c_all, random_state=997, **kwargs):
     norm = np.linalg.norm(c_all, 1)
 
     if norm > 0:
-        distribution = c_all / np.sum(c_all)
+        distribution = c_all / norm
     else:
         distribution = np.full(len(c_all), 1 / len(c_all))
+
+    check = np.sum(distribution)
+    if check > 1:
+        distribution = distribution*0.95
 
     draw = np.random.multinomial(1, distribution, size=1)
     return np.where(draw == 1)[1]
 
 
 # Stopping Criteria
+def _stopping_criterion_rw(q_targ, step):
+    reason_01 = len(q_targ) == 0
+    reason_02 = step == 0
+    return reason_01 or reason_02
+
+
 def _stopping_criterion_it(q_targ, a_src):
     return np.setdiff1d(q_targ, a_src).shape[0] == 0
 
@@ -215,7 +315,7 @@ def _stopping_criterion_greedy_pick(m_sel):
 # Helpers
 def _init_thresholds(init_threshold, stepsize, tolerance=0.01):
     thresholds = np.arange(init_threshold, -stepsize, -stepsize, dtype=np.float32)
-    
+
     # Otherwise rounding errors in feature importances fuck your shit up.
-    thresholds[0] = thresholds[0]-tolerance
+    thresholds[0] = thresholds[0] - tolerance
     return thresholds

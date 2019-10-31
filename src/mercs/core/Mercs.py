@@ -1,6 +1,8 @@
 import warnings
 from inspect import signature
 from timeit import default_timer
+import dask
+
 
 import numpy as np
 from dask import delayed
@@ -13,6 +15,7 @@ from xgboost import XGBClassifier, XGBRegressor
 from ..algo import (
     inference,
     new_inference,
+    inference_v3,
     new_prediction,
     selection,
     vector_prediction,
@@ -46,19 +49,16 @@ class Mercs(object):
     }
 
     prediction_algorithms = {
-        "mi": new_prediction.mi,
-        "mrai": new_prediction.mrai,
-        "it": new_prediction.it,
-        "rw": new_prediction.rw,
-        "vmi": vector_prediction.mi,
-        "vmrai": vector_prediction.mrai,
-        "vit": vector_prediction.it,
+        "mi": vector_prediction.mi,
+        "mrai": vector_prediction.mrai,
+        "it": vector_prediction.it,
+        "rw": vector_prediction.rw,
     }
 
     inference_algorithms = {
         "base": inference.base_inference_algorithm,
-        "dask": inference.dask_inference_algorithm,
-        "ndask": new_inference.inference_algorithm,
+        "dask": inference_v3.inference_algorithm,
+        "own": inference_v3.inference_algorithm,
     }
 
     # Used in parse kwargs to identify parameters. If this identification goes wrong, you are sending settings
@@ -80,7 +80,7 @@ class Mercs(object):
         classifier_algorithm="DT",
         regressor_algorithm="DT",
         prediction_algorithm="mi",
-        inference_algorithm="dask",
+        inference_algorithm="own",
         random_state=42,
         **kwargs
     ):
@@ -104,8 +104,12 @@ class Mercs(object):
         # Data-structures
         self.m_codes = np.array([])
         self.m_list = []
+        self.c_list = []
         self.g_list = []
         self.i_list = []
+
+        self.m_fimps = np.array([])
+        self.m_score = np.array([])
 
         self.FI = np.array([])
         self.targ_ids = np.array([])
@@ -170,72 +174,27 @@ class Mercs(object):
         self._update_m_fimps()
         self._update_m_score()
         self._update_t_codes()
-        #self._update_g_list()
+        # self._update_g_list()
 
         toc = default_timer()
         self.model_data["ind_time"] = toc - tic
 
         return
 
-    def predict(self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs):
-        if beta:
-            return self.predict_beta(
-                X, q_code=q_code, prediction_algorithm=prediction_algorithm, **kwargs
-            )
-        else:
-            # Update configuration if necessary
-            if q_code is None:
-                q_code = self._default_q_code()
-
-            if prediction_algorithm is not None:
-                reuse = False
-                self._reconfig_prediction(
-                    prediction_algorithm=prediction_algorithm, **kwargs
-                )
-
-            # Adjust data
-            tic_prediction = default_timer()
-            self.q_code = q_code
-            self.q_desc_ids, self.q_targ_ids, _ = code_to_query(
-                self.q_code, return_list=True
-            )
-
-            # Make query-diagram
-            self.q_diagram = self.prediction_algorithm(
-                self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
-            )
-
-            toc_prediction = default_timer()
-
-            tic_dask = default_timer()
-            if isinstance(self.q_diagram, list):
-                self.q_diagrams = self.q_diagram
-                self.q_models = [self._get_q_model(d, X) for d in self.q_diagram]
-                self.q_diagram, self.q_model = self.merge_models(self.q_models)
-            else:
-                self.q_model = self._get_q_model(self.q_diagram, X)
-            toc_dask = default_timer()
-
-            tic_compute = default_timer()
-            res = self.q_model.predict.compute()
-            toc_compute = default_timer()
-
-            # Diagnostics
-            self.model_data["prd_time"] = toc_prediction - tic_prediction
-            self.model_data["dsk_time"] = toc_dask - tic_dask
-            self.model_data["cmp_time"] = toc_compute - tic_compute
-            self.model_data["inf_time"] = toc_compute - tic_prediction
-            self.model_data["ratios"] = (
-                self.model_data["prd_time"] / self.model_data["inf_time"],
-                self.model_data["dsk_time"] / self.model_data["inf_time"],
-                self.model_data["cmp_time"] / self.model_data["inf_time"],
-            )
-            return res
-
-    def predict_beta(self, X, q_code=None, prediction_algorithm=None, **kwargs):
+    def predict(
+        self,
+        X,
+        q_code=None,
+        inference_algorithm=None,
+        prediction_algorithm=None,
+        **kwargs
+    ):
         # Update configuration if necessary
         if q_code is None:
             q_code = self._default_q_code()
+
+        if inference_algorithm is not None:
+            self._reconfig_inference(inference_algorithm=inference_algorithm)
 
         if prediction_algorithm is not None:
             self._reconfig_prediction(
@@ -249,31 +208,124 @@ class Mercs(object):
         )
 
         # Make query-diagram
+        tic_prediction = default_timer()
         self.m_sel = self.prediction_algorithm(
             self.m_codes, self.m_fimps, self.m_score, q_code=self.q_code, **self.prd_cfg
         )
+        toc_prediction = default_timer()
 
-        self.q_diagram = self._build_q_diagram(self.m_sel)
-        self.q_model = self._build_q_model(X)
+        tic_diagram = default_timer()
+        self.q_diagram = self._build_q_diagram(self.m_list, self.m_sel)
+        toc_diagram = default_timer()
 
-        return self.q_model.predict.compute()
+        tic_infalgo = default_timer()
+        if isinstance(self.q_diagram, tuple):
+            self.q_diagrams = self.q_diagram
+
+            self.c_list = [self._build_q_model(X, d) for d in self.q_diagrams]
+            self.c_sel = list(range(len(self.c_list)))
+            self.c_diagram = self._build_q_diagram(self.c_list, self.c_sel, composition=True)
+            
+            self.q_model = self._build_q_model(X, self.c_diagram)
+        else:
+            self.q_model = self._build_q_model(X, self.q_diagram)
+
+        
+        toc_infalgo = default_timer()
+
+        tic_dask = default_timer()
+        X = X[:, self.q_model.desc_ids]
+        result = self.q_model.predict(X)
+        toc_dask = default_timer()
+
+        self.model_data["prd_time"] = toc_prediction - tic_prediction
+        self.model_data["dia_time"] = toc_diagram - tic_diagram
+        self.model_data["infalgo_time"] = toc_infalgo - tic_infalgo
+        self.model_data["dsk_time"] = toc_dask - tic_dask
+        self.model_data["inf_time"] = toc_dask - tic_prediction
+
+        return result
+
+    def predict_old(
+        self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs
+    ):
+        # Update configuration if necessary
+        if q_code is None:
+            q_code = self._default_q_code()
+
+        if prediction_algorithm is not None:
+            reuse = False
+            self._reconfig_prediction(
+                prediction_algorithm=prediction_algorithm, **kwargs
+            )
+
+        # Adjust data
+        tic_prediction = default_timer()
+        self.q_code = q_code
+        self.q_desc_ids, self.q_targ_ids, _ = code_to_query(
+            self.q_code, return_list=True
+        )
+
+        # Make query-diagram
+        self.q_diagram = self.prediction_algorithm(
+            self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
+        )
+
+        toc_prediction = default_timer()
+
+        tic_dask = default_timer()
+        
+        toc_dask = default_timer()
+
+        tic_compute = default_timer()
+        res = self.q_model.predict.compute()
+        toc_compute = default_timer()
+
+        # Diagnostics
+        self.model_data["prd_time"] = toc_prediction - tic_prediction
+        self.model_data["dsk_time"] = toc_dask - tic_dask
+        self.model_data["cmp_time"] = toc_compute - tic_compute
+        self.model_data["inf_time"] = toc_compute - tic_prediction
+        self.model_data["ratios"] = (
+            self.model_data["prd_time"] / self.model_data["inf_time"],
+            self.model_data["dsk_time"] / self.model_data["inf_time"],
+            self.model_data["cmp_time"] / self.model_data["inf_time"],
+        )
+        return res
 
     # Diagrams
-    def _build_q_diagram(self, m_sel):
+    def _build_q_diagram(self, m_list, m_sel, composition=False):
+        if isinstance(m_sel, tuple):
+            diagrams = [
+                build_diagram(m_list, m_sel_instance, self.q_code, prune=True, composition=composition)
+                for m_sel_instance in m_sel
+            ]
+            return tuple(diagrams)
+        else:
+            return build_diagram(m_list, m_sel, self.q_code, prune=True, composition=composition)
 
-        return build_diagram(self.m_list, m_sel, self.q_code, prune=True)
-
-    def show_q_diagram(self, kind="svg", fi=False, ortho=False, **kwargs):
-        return show_diagram(self.q_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
+    def show_q_diagram(self, kind="svg", fi=False, ortho=False, index=None, **kwargs):
+        
+        if isinstance(self.q_diagram, tuple) and index is None:
+            return show_diagram(self.c_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
+        elif isinstance(self.q_diagram, tuple):
+            return show_diagram(self.q_diagram[index], kind=kind, fi=fi, ortho=ortho, **kwargs)
+        else:
+            return show_diagram(self.q_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
 
     def save_diagram(self, fname=None, kind="svg", fi=False, ortho=False):
         return save_diagram(self.q_diagram, fname, kind=kind, fi=fi, ortho=ortho)
 
     # Inference
-    def _build_q_model(self, X):
+    def _build_q_model(self, X, diagram):
         try:
             self.inference_algorithm(
-                self.q_diagram, self.m_list, self.i_list, X, self.metadata.get("nominal_attributes")
+                diagram,
+                self.m_list,
+                self.i_list,
+                self.c_list,
+                X,
+                self.metadata.get("nominal_attributes"),
             )
         except NetworkXUnfeasible:
             cycle = find_cycle(self.q_diagram, orientation="original")
@@ -288,8 +340,14 @@ class Mercs(object):
             )
             raise RecursionError(msg)
 
-        q_model = NewCompositeModel(self.q_diagram)
+        q_model = NewCompositeModel(diagram)
         return q_model
+
+    def _merge_q_models(self, q_models):
+        
+
+        q_diagram = build_diagram(self.c_list, self.c_sel, self.q_code, prune=True)
+        return q_diagram, q_model
 
     def merge_models(self, q_models):
 
@@ -341,7 +399,7 @@ class Mercs(object):
 
         q_model = CompositeModel(q_diagram)
         return q_model
-    
+
     # Graphs
     def _update_g_list(self):
         types = self._get_types(self.metadata)
@@ -473,6 +531,15 @@ class Mercs(object):
         self.configuration["prediction"] = self.prd_cfg
         self._update_config(**kwargs)
 
+        return
+
+    def _reconfig_inference(self, inference_algorithm="own", **kwargs):
+        self.inference_algorithm = self.inference_algorithms[inference_algorithm]
+
+        self.inf_cfg = self._default_config(self.inference_algorithm)
+
+        self.configuration["inference"] = self.inf_cfg
+        self._update_config(**kwargs)
         return
 
     @staticmethod

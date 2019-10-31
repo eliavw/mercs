@@ -21,7 +21,6 @@ def base_induction_algorithm(
     classifier_kwargs,
     regressor_kwargs,
     random_state=997,
-    parallel=False,
     n_jobs=1,
     verbose=0,
 ):

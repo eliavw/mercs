@@ -1,6 +1,7 @@
 import numpy as np
 from dask import delayed
 
+from ..algo.inference_v3 import compute
 from .compose import o, x
 from ..graph.network import get_ids, node_label, get_nodes
 
@@ -24,52 +25,58 @@ class NewCompositeModel(object):
         else:
             self.targ_ids = diagram.targ_ids
 
-        self.desc_ids = list(self.desc_ids)
+        self.desc_ids = sorted(list(self.desc_ids))
         self.targ_ids = sorted(list(self.targ_ids))
 
         self.feature_importances_ = None
 
-        
         self.predict = _get_predict(diagram, self.targ_ids)
+
+        self.predict_proba = _get_predict_proba(diagram, self.targ_ids)
+
+        self.classes_ = _get_classes_(diagram, self.targ_ids)
 
         return
 
+
 def _get_predict(diagram, targ_ids):
+    def predict(X, redo=True):
+        diagram.data = X
 
-    tgt_methods = [diagram.node[('D', n)]["dask"] for n in targ_ids]
+        if redo:
+            clean_cache(diagram)
 
-    if len(tgt_methods) == 1:
-        # We can safely return the only method
-        return tgt_methods.pop()
-    else:
-        # We need to package them together
-        collector = delayed(np.stack)(tgt_methods, axis=1)
-        return collector
+        collector = [compute(diagram, ("D", n)) for n in targ_ids]
+        if len(targ_ids) == 1:
+            return collector.pop()
+        else:
+            return np.stack(collector, axis=1)
+
+    return predict
 
 
 def _get_predict_proba(diagram, nominal_targ_ids):
+    def predict_proba(X, redo=True):
+        diagram.data = X
 
-    tgt_methods = [diagram.node[('D', n)]["dask_proba"] for n in nominal_targ_ids]
+        if redo:
+            clean_cache(diagram)
 
-    if len(tgt_methods) == 1:
-        # We can safely return the only method
-        return tgt_methods.pop()
-    else:
-        # We need to package them together
-        collector = delayed(x)(*tgt_methods, return_type=list)
+        collector = [compute(diagram, ("D", n), proba=True) for n in nominal_targ_ids]
         return collector
 
+    return predict_proba
 
-def _get_classes(diagram, nominal_targ_ids):
 
-    nominal_targ_ids.sort()
+def _get_classes_(diagram, nominal_targ_ids):
+    collector = [diagram.node[("D", n)]["classes"] for n in nominal_targ_ids]
+    return collector
 
-    # The prob and vote nodes have complete information on the classes
-    targ_classes_ = [
-        diagram.node[node_label(t, kind="prob")]["classes"] for t in nominal_targ_ids
-    ]
 
-    if len(targ_classes_) == 1:
-        return targ_classes_.pop()
-    else:
-        return targ_classes_
+def clean_cache(diagram):
+    for n in diagram.nodes:
+        if diagram.node[n].get("result", None) is not None:
+            diagram.node[n]["result"] = None
+        if diagram.node[n].get("result_proba", None) is not None:
+            diagram.node[n]["result_proba"] = None
+    return
