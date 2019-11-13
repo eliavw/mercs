@@ -47,10 +47,13 @@ def mrai(
 
     # Criterion
     c_flt = criterion(m_score, m_filter=m_avl, a_filter=a_tgt, aggregation=True)
-    m_avl = m_avl[c_flt.flat > 0]
+    m_flt = m_avl[c_flt.flat > 0]
 
-    c_tgt = criterion(m_score, m_filter=m_avl, a_filter=a_tgt, aggregation=None)
-    c_src = criterion(m_fimps, m_filter=m_avl, a_filter=a_src, aggregation=True)
+    if len(m_flt) == 0:
+        m_flt = m_avl
+
+    c_tgt = criterion(m_score, m_filter=m_flt, a_filter=a_tgt, aggregation=None)
+    c_src = criterion(m_fimps, m_filter=m_flt, a_filter=a_src, aggregation=True)
 
     c_all = c_src.reshape(-1, 1) * c_tgt
 
@@ -62,7 +65,7 @@ def mrai(
         stochastic=stochastic,
         random_state=random_state,
     )
-    m_sel = m_avl[m_sel_idx]
+    m_sel = m_flt[m_sel_idx]
 
     return m_sel
 
@@ -91,7 +94,6 @@ def it(
         m_avl = np.arange(m_codes.shape[0], dtype=np.int32)
 
     for step in range(max_steps):
-
         # Check if this is our last chance
         last = step + 1 == max_steps
         if last:
@@ -212,7 +214,7 @@ def walk(
         m_avl = np.setdiff1d(m_avl, step_m_sel)
         m_sel.insert(0, step_m_sel)
 
-        if _stopping_criterion_rw(a_tgt, step):
+        if _stopping_criterion_rw(a_tgt, step, m_avl):
             break
 
         if len(step_m_sel) == 0:
@@ -243,7 +245,7 @@ def criterion(m_matrix, m_filter=None, a_filter=None, aggregation=None):
     if aggregation is None:
         return c_matrix
     else:
-        return np.sum(c_matrix, axis=1).reshape(-1, 1).astype(np.float32)
+        return np.sum(c_matrix, axis=1).reshape(-1, 1)
 
 
 # Picks
@@ -259,6 +261,7 @@ def pick(
         picking_function = _stochastic_pick if stochastic else _greedy_pick
 
         if any_target:
+
             criteria = np.max(criteria, axis=1).reshape(-1, 1)
 
         for c_idx in range(criteria.shape[1]):
@@ -274,13 +277,15 @@ def pick(
 def _greedy_pick(c_all, thresholds=None, **kwargs):
 
     for thr in thresholds:
-        m_sel = np.where(c_all >= np.quantile(c_all, 1.0-thr))[0]
+        #m_sel = np.where(c_all >= np.quantile(c_all, 1.0-thr))[0]
+        m_sel = np.where(c_all >= thr)[0]
         if _stopping_criterion_greedy_pick(m_sel):
             break
     return m_sel
 
 
 def _stochastic_pick(c_all, random_state=997, **kwargs):
+    assert len(c_all) > 0
     np.random.seed(random_state)
     norm = np.linalg.norm(c_all, 1)
 
@@ -289,19 +294,25 @@ def _stochastic_pick(c_all, random_state=997, **kwargs):
     else:
         distribution = np.full(len(c_all), 1 / len(c_all))
 
-    check = np.sum(distribution)
-    if check > 1:
-        distribution = distribution*0.95
+    #check = np.sum(distribution[:-1])
+    #while check > 1.0:
+    #    print("ADAPTATION")
+    #    distribution = distribution*0.95
+    #   check = np.sum(distribution[:-1])
 
-    draw = np.random.multinomial(1, distribution, size=1)
+    try:
+        draw = np.random.multinomial(1, distribution, size=1)
+    except ValueError:
+        draw = np.random.multinomial(1, distribution*0.95, size=1)
     return np.where(draw == 1)[1]
 
 
 # Stopping Criteria
-def _stopping_criterion_rw(q_targ, step):
+def _stopping_criterion_rw(q_targ, step, m_avl):
     reason_01 = len(q_targ) == 0
     reason_02 = step == 0
-    return reason_01 or reason_02
+    reason_03 = len(m_avl) == 0
+    return reason_01 or reason_02 or reason_03
 
 
 def _stopping_criterion_it(q_targ, a_src):
@@ -313,7 +324,7 @@ def _stopping_criterion_greedy_pick(m_sel):
 
 
 # Helpers
-def _init_thresholds(init_threshold, stepsize, tolerance=0.01):
+def _init_thresholds(init_threshold, stepsize, tolerance=1*10**(-4)):
     thresholds = np.arange(init_threshold, -stepsize, -stepsize, dtype=np.float32)
 
     # Otherwise rounding errors in feature importances fuck your shit up.

@@ -6,8 +6,10 @@ import warnings
 from ..composition.CanonicalModel import CanonicalModel
 from ..utils import code_to_query, debug_print, get_att
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.metrics import f1_score, r2_score
 
 from joblib import Parallel, delayed
+from functools import partial
 
 VERBOSITY = 0
 
@@ -74,10 +76,13 @@ def base_induction_algorithm(
             kwargs = classifier_kwargs
             learner = classifier
             out_kind = "nominal"
+            metric = partial(f1_score, average="macro")
         elif set(targ_ids).issubset(numeric_attributes):
             kwargs = regressor_kwargs
             learner = regressor
             out_kind = "numeric"
+            metric =  r2_score
+
         else:
             msg = """
             Cannot learn mixed (nominal/numeric) models
@@ -87,7 +92,7 @@ def base_induction_algorithm(
         kwargs["random_state"] = random_states[idx]
 
         # Learn a model for current desc_ids-targ_ids combo
-        tup = (data, desc_ids, targ_ids, learner, out_kind)
+        tup = (data, desc_ids, targ_ids, learner, out_kind, metric)
         parameters.append((tup, kwargs))
 
     if n_jobs > 1:
@@ -106,7 +111,10 @@ def base_induction_algorithm(
     return m_list
 
 
-def _learn_model(data, desc_ids, targ_ids, learner, out_kind="numeric", **kwargs):
+from sklearn.model_selection import train_test_split
+
+
+def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, **kwargs):
     """
     Learn a model from the data.
 
@@ -125,17 +133,26 @@ def _learn_model(data, desc_ids, targ_ids, learner, out_kind="numeric", **kwargs
         # If output is single variable, we need 1D matrix
         o = o.ravel()
 
+    X_train, X_test, y_train, y_test = train_test_split(
+        i, o, test_size=0.10, random_state=42
+    )
+
     try:
         model = learner(**kwargs)
-        model.fit(i, o)
+        model.fit(X_train, y_train)
+
+        performance = 1
+        #y_pred = model.predict(X_test)
+        #performance = metric(y_test, y_pred)
+
     except ValueError as e:
-        print(e)
+        raise ValueError(out_kind, metric, e)
 
     # Bookkeeping
-    model = CanonicalModel(model, desc_ids, targ_ids, out_kind)
+    model = CanonicalModel(model, desc_ids, targ_ids, out_kind, performance)
 
-    #model.desc_ids = desc_ids
-    #model.targ_ids = targ_ids
-    #model.out_kind = out_kind
+    # model.desc_ids = desc_ids
+    # model.targ_ids = targ_ids
+    # model.out_kind = out_kind
 
     return model

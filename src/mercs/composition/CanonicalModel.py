@@ -20,7 +20,7 @@ class CanonicalModel(object):
        
     """
 
-    def __init__(self, model, desc_ids, targ_ids, out_kind):
+    def __init__(self, model, desc_ids, targ_ids, out_kind, performance):
 
         self.model = model
 
@@ -28,6 +28,7 @@ class CanonicalModel(object):
         self.desc_ids = desc_ids
         self.targ_ids = targ_ids
         self.out_kind = out_kind
+        self.score = performance
 
         self.feature_importances_ =  self.model.feature_importances_
 

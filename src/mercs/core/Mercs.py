@@ -181,6 +181,7 @@ class Mercs(object):
 
         return
 
+
     def predict(
         self,
         X,
@@ -413,17 +414,27 @@ class Mercs(object):
         init = np.zeros(self.m_codes.shape)
 
         for m_idx, mod in enumerate(self.m_list):
-
             init[m_idx, list(mod.desc_ids)] = mod.feature_importances_
-            self.fi = init
-
-            self.m_fimps = init.astype(np.float32)
+        
+        self.fi = init
+        self.m_fimps = init
 
         return
 
     def _update_m_score(self):
         # Eventually, these should be decent estimates
+
+        """
+        init = np.zeros(self.m_codes.shape)
+
+        for m_idx, mod in enumerate(self.m_list):
+            init[m_idx, list(mod.targ_ids)] = np.clip(mod.score, 0.0001, 1)
+
+        self.m_score = init
+        """
+        
         self.m_score = (self.m_codes == TARG_ENCODING).astype(np.float32)
+
         return
 
     def _update_t_codes(self):

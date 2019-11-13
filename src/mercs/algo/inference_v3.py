@@ -91,7 +91,6 @@ def single_data_node(g, node, m_list, c_list):
     return
 """
 
-
 def numeric_data_node(g, node, m_list, c_list):
     parents = _numeric_parents(g, m_list, c_list, node)
 
