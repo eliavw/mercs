@@ -15,6 +15,22 @@ from ..utils.inference_tools import (
 
 # Main algorithm
 def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
+    """Add inference information to graph g
+    
+    Arguments:
+        g {[type]} -- [description]
+        m_list {[type]} -- [description]
+        i_list {[type]} -- [description]
+        c_list {[type]} -- [description]
+        data {[type]} -- [description]
+        nominal_ids {[type]} -- [description]
+    
+    Raises:
+        ValueError: [description]
+    
+    Returns:
+        [type] -- [description]
+    """
 
     _data_node = lambda k, n: k == "D"
     _model_node = lambda k, n: k == "M"
@@ -59,8 +75,8 @@ def input_data_node(g, node, g_desc_ids):
         return f1(g.data)
 
     # New
-    g.node[node]["inputs"] = g_desc_ids.index(node[1])
-    g.node[node]["compute"] = f
+    g.nodes[node]["inputs"] = g_desc_ids.index(node[1])
+    g.nodes[node]["compute"] = f
 
     return
 
@@ -72,8 +88,8 @@ def imputation_node(g, node, i_list, nb_rows):
         return i_list[node[1]].transform(_dummy_array(n)).ravel()
 
     # New
-    g.node[node]["inputs"] = nb_rows
-    g.node[node]["compute"] = f
+    g.nodes[node]["inputs"] = nb_rows
+    g.nodes[node]["compute"] = f
     return
 
 """
@@ -85,8 +101,8 @@ def single_data_node(g, node, m_list, c_list):
         collector = _numeric_inputs(g, parents)
         return collector.pop()
 
-    g.node[node]["inputs"] = parents
-    g.node[node]["compute"] = f
+    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["compute"] = f
 
     return
 """
@@ -98,8 +114,8 @@ def numeric_data_node(g, node, m_list, c_list):
         collector = _numeric_inputs(g, parents)
         return np.mean(collector, axis=0)
 
-    g.node[node]["inputs"] = parents
-    g.node[node]["compute"] = f
+    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["compute"] = f
     return
 
 
@@ -119,10 +135,10 @@ def nominal_data_node(g, node, m_list, c_list):
     def F2(parents):
         return vote(F(parents))
 
-    g.node[node]["classes"] = classes
-    g.node[node]["inputs"] = parents
-    g.node[node]["compute_proba"] = F
-    g.node[node]["compute"] = F2
+    g.nodes[node]["classes"] = classes
+    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["compute_proba"] = F
+    g.nodes[node]["compute"] = F2
 
     return
 
@@ -136,8 +152,8 @@ def model_node(g, node, m_list):
         X = _model_inputs(g, parents)
         return m_list[node[1]].predict(X)
 
-    g.node[node]["inputs"] = parents
-    g.node[node]["compute"] = f
+    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["compute"] = f
 
     if hasattr(m_list[node[1]], "predict_proba"):
 
@@ -145,7 +161,7 @@ def model_node(g, node, m_list):
             X = _model_inputs(g, parents)
             return m_list[node[1]].predict_proba(X)
 
-        g.node[node]["compute_proba"] = f2
+        g.nodes[node]["compute_proba"] = f2
 
     return
 
@@ -164,12 +180,12 @@ def compute(g, node, proba=False):
         result += "_proba"
         compute += "_proba"
 
-    r = g.node[node].get(result, None)
+    r = g.nodes[node].get(result, None)
     if r is None:
-        i = g.node[node].get("inputs")
-        f = g.node[node].get(compute)
-        g.node[node][result] = f(i)
-        return g.node[node][result]
+        i = g.nodes[node].get("inputs")
+        f = g.nodes[node].get(compute)
+        g.nodes[node][result] = f(i)
+        return g.nodes[node][result]
     else:
         return r
 

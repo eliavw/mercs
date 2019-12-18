@@ -53,12 +53,12 @@ def get_att_2d(codes, kind="desc"):
     return np.unique(np.where(codes == ENCODING[kind])[1].astype(int))
 
 
-def query_to_code(q_desc, q_targ, q_miss=None, atts=None):
+def query_to_code(q_desc, q_targ, q_miss=None, attributes=None):
 
-    if atts is None:
-        atts = determine_attributes(q_desc, q_targ, q_miss)
+    if attributes is None:
+        attributes = determine_attributes(q_desc, q_targ, q_miss)
 
-    code = [encode_attribute(a, q_desc, q_targ) for a in atts]
+    code = [encode_attribute(a, q_desc, q_targ) for a in attributes]
 
     return np.array(code)
 

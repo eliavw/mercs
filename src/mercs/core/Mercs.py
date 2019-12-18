@@ -1,65 +1,113 @@
 import warnings
 from inspect import signature
 from timeit import default_timer
+
 import dask
-
-
+import itertools
 import numpy as np
+from catboost import CatBoostClassifier, CatBoostRegressor
 from dask import delayed
 from networkx import NetworkXUnfeasible, find_cycle, topological_sort
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    RandomForestRegressor,
+    ExtraTreesClassifier,
+    ExtraTreesRegressor,
+)
 from sklearn.impute import SimpleImputer
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+
+#from PxW import RFClassifier, RFRegressor
+import wekalearn
 from xgboost import XGBClassifier, XGBRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor
 
 from ..algo import (
+    imputation,
     inference,
-    new_inference,
     inference_v3,
+    new_inference,
     new_prediction,
     selection,
     vector_prediction,
+    evaluation,
 )
-from ..algo.induction import base_induction_algorithm
-from ..composition import CompositeModel, o, x, NewCompositeModel
-from ..graph import compose_all, get_targ, model_to_graph, build_diagram
-from ..utils import DESC_ENCODING, MISS_ENCODING, TARG_ENCODING, code_to_query
+from ..algo.induction import base_induction_algorithm, expand_induction_algorithm
+from ..composition import CompositeModel, NewCompositeModel, o, x
+from ..graph import build_diagram, compose_all, get_targ, model_to_graph
+from ..utils import (
+    DESC_ENCODING,
+    MISS_ENCODING,
+    TARG_ENCODING,
+    code_to_query,
+    query_to_code,
+)
 from ..visuals import save_diagram, show_diagram
 
 
 class Mercs(object):
-    # TODO: Determine these automatically based on method names.
     delimiter = "_"
 
-    selection_algorithms = {
-        "base": selection.base_selection_algorithm,
-        "random": selection.random_selection_algorithm,
-    }
+    selection_algorithms = dict(
+        base=selection.base_selection_algorithm,
+        random=selection.random_selection_algorithm,
+    )
 
-    classifier_algorithms = {
-        "DT": DecisionTreeClassifier,
-        "RF": RandomForestClassifier,
-        "XGB": XGBClassifier,
-    }
+    induction_algorithms = dict(
+        base=base_induction_algorithm, expand=expand_induction_algorithm
+    )
 
-    regressor_algorithms = {
-        "DT": DecisionTreeRegressor,
-        "RF": RandomForestRegressor,
-        "XGB": XGBRegressor,
-    }
+    classifier_algorithms = dict(
+        DT=DecisionTreeClassifier,
+        RF=RandomForestClassifier,
+        XGB=XGBClassifier,
+        xgb=XGBClassifier,
+        weka=wekalearn.RandomForestClassifier,
+        LGBM=LGBMClassifier,
+        lgbm=LGBMClassifier,
+        CB=CatBoostClassifier,
+        extra=ExtraTreesClassifier,
+    )
 
-    prediction_algorithms = {
-        "mi": vector_prediction.mi,
-        "mrai": vector_prediction.mrai,
-        "it": vector_prediction.it,
-        "rw": vector_prediction.rw,
-    }
+    regressor_algorithms = dict(
+        DT=DecisionTreeRegressor,
+        RF=RandomForestRegressor,
+        XGB=XGBRegressor,
+        xgb=XGBRegressor,
+        weka=wekalearn.RandomForestRegressor,
+        LGBM=LGBMRegressor,
+        lgbm=LGBMRegressor,
+        CB=CatBoostRegressor,
+        extra=ExtraTreesRegressor,
+    )
 
-    inference_algorithms = {
-        "base": inference.base_inference_algorithm,
-        "dask": inference_v3.inference_algorithm,
-        "own": inference_v3.inference_algorithm,
-    }
+    prediction_algorithms = dict(
+        mi=vector_prediction.mi,
+        mrai=vector_prediction.mrai,
+        it=vector_prediction.it,
+        rw=vector_prediction.rw,
+    )
+
+    inference_algorithms = dict(
+        base=inference.base_inference_algorithm,
+        dask=inference_v3.inference_algorithm,
+        own=inference_v3.inference_algorithm,
+    )
+
+    imputer_algorithms = dict(
+        nan=imputation.nan_imputation,
+        NAN=imputation.nan_imputation,
+        NaN=imputation.nan_imputation,
+        null=imputation.nan_imputation,
+        NULL=imputation.nan_imputation,
+        skl=imputation.skl_imputation,
+        base=imputation.skl_imputation,
+        default=imputation.skl_imputation,
+    )
+
+    evaluation_algorithms = dict(
+        base=evaluation.base_evaluation, default=evaluation.base_evaluation
+    )
 
     # Used in parse kwargs to identify parameters. If this identification goes wrong, you are sending settings
     # somewhere you do not want them to be. So, this is a tricky part, and moreover hardcoded. In other words:
@@ -69,18 +117,22 @@ class Mercs(object):
         selection={"selection", "sel"},
         prediction={"prediction", "pred", "prd"},
         inference={"inference", "infr", "inf"},
-        regression={"classification", "classifier", "clf"},
-        classification={"regression", "regressor", "rgr"},
+        classification={"classification", "classifier", "clf"},
+        regression={"regression", "regressor", "rgr"},
         metadata={"metadata", "meta", "mtd"},
+        evaluation={"evaluation", "evl"},
     )
 
     def __init__(
         self,
         selection_algorithm="base",
+        induction_algorithm="base",
         classifier_algorithm="DT",
         regressor_algorithm="DT",
         prediction_algorithm="mi",
         inference_algorithm="own",
+        imputer_algorithm="default",
+        evaluation_algorithm="default",
         random_state=42,
         **kwargs
     ):
@@ -97,9 +149,11 @@ class Mercs(object):
 
         self.prediction_algorithm = self.prediction_algorithms[prediction_algorithm]
         self.inference_algorithm = self.inference_algorithms[inference_algorithm]
-        self.induction_algorithm = (
-            base_induction_algorithm
-        )  # For now, we only have one.
+        self.induction_algorithm = self.induction_algorithms[
+            induction_algorithm
+        ]  # For now, we only have one.
+        self.imputer_algorithm = self.imputer_algorithms[imputer_algorithm]
+        self.evaluation_algorithm = self.evaluation_algorithms[evaluation_algorithm]
 
         # Data-structures
         self.m_codes = np.array([])
@@ -129,6 +183,7 @@ class Mercs(object):
         self.rgr_cfg = self._default_config(self.regressor_algorithm)
         self.prd_cfg = self._default_config(self.prediction_algorithm)
         self.inf_cfg = self._default_config(self.inference_algorithm)
+        self.evl_cfg = self._default_config(self.evaluation_algorithm)
 
         self.configuration = dict(
             induction=self.ind_cfg,
@@ -148,17 +203,22 @@ class Mercs(object):
 
         return
 
-    def fit(self, X, **kwargs):
-        assert isinstance(X, np.ndarray)
+    def fit(self, X, m_codes=None, scores=True, **kwargs):
         tic = default_timer()
+
+        assert isinstance(X, np.ndarray)
+        binary_scores = not scores
 
         self.metadata = self._default_metadata(X)
         self._update_metadata(**kwargs)
 
-        self._fit_imputer(X)
+        self.i_list = self.imputer_algorithm(X, self.metadata.get("nominal_attributes"))
 
         # N.b.: `random state` parameter is in `self.sel_cfg`
-        self.m_codes = self.selection_algorithm(self.metadata, **self.sel_cfg)
+        if m_codes is None:
+            self.m_codes = self.selection_algorithm(self.metadata, **self.sel_cfg)
+        else:
+            self.m_codes = m_codes
 
         self.m_list = self.induction_algorithm(
             X,
@@ -171,16 +231,16 @@ class Mercs(object):
             **self.ind_cfg
         )
 
-        self._update_m_fimps()
-        self._update_m_score()
-        self._update_t_codes()
-        # self._update_g_list()
+        self._consistent_datastructures(binary_scores=binary_scores)
+        
+        self.m_score = self.evaluation_algorithm(
+            X, self.m_codes, self.m_list, self.i_list, **self.evl_cfg
+        )
 
         toc = default_timer()
         self.model_data["ind_time"] = toc - tic
-
+        self.metadata["n_component_models"] = len(self.m_codes)
         return
-
 
     def predict(
         self,
@@ -223,15 +283,20 @@ class Mercs(object):
         if isinstance(self.q_diagram, tuple):
             self.q_diagrams = self.q_diagram
 
+            # for d in self.q_diagrams:
+            #    print(d.nodes)
+            #   self.c_list.append(self._build_q_model(X, d))
+
             self.c_list = [self._build_q_model(X, d) for d in self.q_diagrams]
             self.c_sel = list(range(len(self.c_list)))
-            self.c_diagram = self._build_q_diagram(self.c_list, self.c_sel, composition=True)
-            
+            self.c_diagram = self._build_q_diagram(
+                self.c_list, self.c_sel, composition=True
+            )
+
             self.q_model = self._build_q_model(X, self.c_diagram)
         else:
             self.q_model = self._build_q_model(X, self.q_diagram)
 
-        
         toc_infalgo = default_timer()
 
         tic_dask = default_timer()
@@ -247,70 +312,33 @@ class Mercs(object):
 
         return result
 
-    def predict_old(
-        self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs
-    ):
-        # Update configuration if necessary
-        if q_code is None:
-            q_code = self._default_q_code()
-
-        if prediction_algorithm is not None:
-            reuse = False
-            self._reconfig_prediction(
-                prediction_algorithm=prediction_algorithm, **kwargs
-            )
-
-        # Adjust data
-        tic_prediction = default_timer()
-        self.q_code = q_code
-        self.q_desc_ids, self.q_targ_ids, _ = code_to_query(
-            self.q_code, return_list=True
-        )
-
-        # Make query-diagram
-        self.q_diagram = self.prediction_algorithm(
-            self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
-        )
-
-        toc_prediction = default_timer()
-
-        tic_dask = default_timer()
-        
-        toc_dask = default_timer()
-
-        tic_compute = default_timer()
-        res = self.q_model.predict.compute()
-        toc_compute = default_timer()
-
-        # Diagnostics
-        self.model_data["prd_time"] = toc_prediction - tic_prediction
-        self.model_data["dsk_time"] = toc_dask - tic_dask
-        self.model_data["cmp_time"] = toc_compute - tic_compute
-        self.model_data["inf_time"] = toc_compute - tic_prediction
-        self.model_data["ratios"] = (
-            self.model_data["prd_time"] / self.model_data["inf_time"],
-            self.model_data["dsk_time"] / self.model_data["inf_time"],
-            self.model_data["cmp_time"] / self.model_data["inf_time"],
-        )
-        return res
-
     # Diagrams
     def _build_q_diagram(self, m_list, m_sel, composition=False):
         if isinstance(m_sel, tuple):
             diagrams = [
-                build_diagram(m_list, m_sel_instance, self.q_code, prune=True, composition=composition)
+                build_diagram(
+                    m_list,
+                    m_sel_instance,
+                    self.q_code,
+                    prune=True,
+                    composition=composition,
+                )
                 for m_sel_instance in m_sel
             ]
             return tuple(diagrams)
         else:
-            return build_diagram(m_list, m_sel, self.q_code, prune=True, composition=composition)
+            return build_diagram(
+                m_list, m_sel, self.q_code, prune=True, composition=composition
+            )
 
     def show_q_diagram(self, kind="svg", fi=False, ortho=False, index=None, **kwargs):
-        
+
         if isinstance(self.q_diagram, tuple) and index is None:
             return show_diagram(self.c_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
         elif isinstance(self.q_diagram, tuple):
-            return show_diagram(self.q_diagram[index], kind=kind, fi=fi, ortho=ortho, **kwargs)
+            return show_diagram(
+                self.q_diagram[index], kind=kind, fi=fi, ortho=ortho, **kwargs
+            )
         else:
             return show_diagram(self.q_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
 
@@ -318,6 +346,7 @@ class Mercs(object):
         return save_diagram(self.q_diagram, fname, kind=kind, fi=fi, ortho=ortho)
 
     # Inference
+
     def _build_q_model(self, X, diagram):
         try:
             self.inference_algorithm(
@@ -341,14 +370,17 @@ class Mercs(object):
             )
             raise RecursionError(msg)
 
-        q_model = NewCompositeModel(diagram)
+        n_component_models = self.metadata["n_component_models"]
+        q_model = NewCompositeModel(
+            diagram,
+            nominal_attributes=self.metadata["nominal_attributes"],
+            n_component_models=n_component_models,
+        )
         return q_model
 
     def _merge_q_models(self, q_models):
-        
-
         q_diagram = build_diagram(self.c_list, self.c_sel, self.q_code, prune=True)
-        return q_diagram, q_model
+        return q_diagram
 
     def merge_models(self, q_models):
 
@@ -402,11 +434,31 @@ class Mercs(object):
         return q_model
 
     # Graphs
-    def _update_g_list(self):
-        types = self._get_types(self.metadata)
-        self.g_list = [
-            model_to_graph(m, types=types, idx=idx) for idx, m in enumerate(self.m_list)
-        ]
+    def _consistent_datastructures(self, binary_scores=False):
+        self._update_m_codes()
+        self._update_m_fimps()
+        return
+
+    def _expand_m_list(self):
+        self.m_list = list(itertools.chain.from_iterable(self.m_list))
+        return
+
+    def _add_model(self, model, binary_scores=False):
+        self.m_list.append(model)
+        self._consistent_datastructures(binary_scores=binary_scores)
+        return
+
+    def _update_m_codes(self):
+        self.m_codes = np.array(
+            [
+                query_to_code(
+                    list(model.desc_ids),
+                    list(model.targ_ids),
+                    attributes=self.metadata["attributes"],
+                )
+                for model in self.m_list
+            ]
+        )
         return
 
     def _update_m_fimps(self):
@@ -415,63 +467,17 @@ class Mercs(object):
 
         for m_idx, mod in enumerate(self.m_list):
             init[m_idx, list(mod.desc_ids)] = mod.feature_importances_
-        
-        self.fi = init
+
         self.m_fimps = init
 
         return
 
-    def _update_m_score(self):
-        # Eventually, these should be decent estimates
-
-        """
-        init = np.zeros(self.m_codes.shape)
-
-        for m_idx, mod in enumerate(self.m_list):
-            init[m_idx, list(mod.targ_ids)] = np.clip(mod.score, 0.0001, 1)
-
-        self.m_score = init
-        """
-        
-        self.m_score = (self.m_codes == TARG_ENCODING).astype(np.float32)
-
-        return
-
-    def _update_t_codes(self):
-        self.t_codes = (self.m_codes == TARG_ENCODING).astype(int)
+    def _update_m_score(self, binary_scores=False):
+        if binary_scores:
+            self.m_score = (self.m_codes == TARG_ENCODING).astype(float)
         return
 
     # Imputer
-    def _fit_imputer(self, X):
-        """
-        Construct and fit an imputer
-        """
-        _, n_cols = X.shape
-
-        i_list = []
-        for c in range(n_cols):
-            i_config = dict(missing_values=np.nan)
-
-            if c in self.metadata["nominal_attributes"]:
-                i_config["strategy"] = "most_frequent"
-            elif (
-                self.classifier_algorithm == XGBClassifier
-                or self.regressor_algorithm == XGBRegressor
-            ):
-                # So basically, do nothing. XGB copes.
-                i_config["strategy"] = "constant"
-                i_config["fill_value"] = np.nan
-            else:
-                i_config["strategy"] = "mean"
-
-            i = SimpleImputer(**i_config)
-            i.fit(X[:, [c]])
-            i_list.append(i)
-
-        self.i_list = i_list
-
-        return
-
     def _add_imputer_function(self, g):
 
         for n in g.nodes:
@@ -723,3 +729,62 @@ class Mercs(object):
             filtered_nodes.append(n)
         filtered_nodes = list(reversed(filtered_nodes))
         return filtered_nodes
+
+    # Legacy (delete in a while)
+    def predict_old(
+        self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs
+    ):
+        # Update configuration if necessary
+        if q_code is None:
+            q_code = self._default_q_code()
+
+        if prediction_algorithm is not None:
+            reuse = False
+            self._reconfig_prediction(
+                prediction_algorithm=prediction_algorithm, **kwargs
+            )
+
+        # Adjust data
+        tic_prediction = default_timer()
+        self.q_code = q_code
+        self.q_desc_ids, self.q_targ_ids, _ = code_to_query(
+            self.q_code, return_list=True
+        )
+
+        # Make query-diagram
+        self.q_diagram = self.prediction_algorithm(
+            self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
+        )
+
+        toc_prediction = default_timer()
+
+        tic_dask = default_timer()
+
+        toc_dask = default_timer()
+
+        tic_compute = default_timer()
+        res = self.q_model.predict.compute()
+        toc_compute = default_timer()
+
+        # Diagnostics
+        self.model_data["prd_time"] = toc_prediction - tic_prediction
+        self.model_data["dsk_time"] = toc_dask - tic_dask
+        self.model_data["cmp_time"] = toc_compute - tic_compute
+        self.model_data["inf_time"] = toc_compute - tic_prediction
+        self.model_data["ratios"] = (
+            self.model_data["prd_time"] / self.model_data["inf_time"],
+            self.model_data["dsk_time"] / self.model_data["inf_time"],
+            self.model_data["cmp_time"] / self.model_data["inf_time"],
+        )
+        return res
+
+    def _update_g_list(self):
+        types = self._get_types(self.metadata)
+        self.g_list = [
+            model_to_graph(m, types=types, idx=idx) for idx, m in enumerate(self.m_list)
+        ]
+        return
+
+    def _update_t_codes(self):
+        self.t_codes = (self.m_codes == TARG_ENCODING).astype(int)
+        return

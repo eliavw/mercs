@@ -11,9 +11,13 @@ VERBOSITY = 0
 
 
 class NewCompositeModel(object):
-    def __init__(self, diagram, desc_ids=None, targ_ids=None):
+    def __init__(self, diagram, desc_ids=None, targ_ids=None, nominal_attributes=None, n_component_models=0):
 
         # Assign desc and targ ids
+
+        for k, idx in diagram.nodes():
+            if k == 'M' and (idx >= n_component_models):
+                diagram.nodes[(k, idx)]['shape'] = 'square'
 
         if desc_ids is not None:
             self.desc_ids = desc_ids
@@ -28,13 +32,17 @@ class NewCompositeModel(object):
         self.desc_ids = sorted(list(self.desc_ids))
         self.targ_ids = sorted(list(self.targ_ids))
 
-        self.feature_importances_ = None
+        self.feature_importances_ = [1/len(self.desc_ids) for _ in self.desc_ids]
 
         self.predict = _get_predict(diagram, self.targ_ids)
 
         self.predict_proba = _get_predict_proba(diagram, self.targ_ids)
 
-        self.classes_ = _get_classes_(diagram, self.targ_ids)
+        if nominal_attributes is not None:
+            nominal_targ_ids = nominal_attributes.intersection(self.targ_ids)
+            self.classes_ = _get_classes_(diagram, nominal_targ_ids)
+
+        self.score = 1
 
         return
 
@@ -69,14 +77,14 @@ def _get_predict_proba(diagram, nominal_targ_ids):
 
 
 def _get_classes_(diagram, nominal_targ_ids):
-    collector = [diagram.node[("D", n)]["classes"] for n in nominal_targ_ids]
+    collector = [diagram.nodes[("D", n)]["classes"] for n in nominal_targ_ids]
     return collector
 
 
 def clean_cache(diagram):
     for n in diagram.nodes:
-        if diagram.node[n].get("result", None) is not None:
-            diagram.node[n]["result"] = None
-        if diagram.node[n].get("result_proba", None) is not None:
-            diagram.node[n]["result_proba"] = None
+        if diagram.nodes[n].get("result", None) is not None:
+            diagram.nodes[n]["result"] = None
+        if diagram.nodes[n].get("result_proba", None) is not None:
+            diagram.nodes[n]["result_proba"] = None
     return

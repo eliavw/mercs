@@ -1,11 +1,17 @@
 import numpy as np
+import warnings
+
+from sklearn.preprocessing import minmax_scale, normalize
 
 from ..utils import code_to_query, get_att_2d
+
+EPSILON = 0.00001
 
 
 # Strategies
 def mi(m_codes, m_fimps, m_score, q_code, m_avl=None, random_state=997):
-    return mrai(
+
+    m_sel = mrai(
         m_codes,
         m_fimps,
         m_score,
@@ -15,9 +21,12 @@ def mi(m_codes, m_fimps, m_score, q_code, m_avl=None, random_state=997):
         a_tgt=None,
         m_avl=m_avl,
         any_target=False,
-        stochastic=False,
+        picking_function="all",
         random_state=random_state,
     )
+
+    assert len(m_sel) > 0
+    return m_sel
 
 
 def mrai(
@@ -31,7 +40,7 @@ def mrai(
     init_threshold=1.0,
     stepsize=0.1,
     any_target=False,
-    stochastic=False,
+    picking_function="greedy",
     thresholds=None,
     random_state=997,
 ):
@@ -46,23 +55,30 @@ def mrai(
         a_src, a_tgt, _ = code_to_query(q_code)
 
     # Criterion
-    c_flt = criterion(m_score, m_filter=m_avl, a_filter=a_tgt, aggregation=True)
+    c_flt = criterion(m_score, row_filter=m_avl, col_filter=a_tgt, aggregation=True)
     m_flt = m_avl[c_flt.flat > 0]
 
     if len(m_flt) == 0:
+        warnings.warn("No model has an above zero score for the required targets.")
         m_flt = m_avl
+        return None
 
-    c_tgt = criterion(m_score, m_filter=m_flt, a_filter=a_tgt, aggregation=None)
-    c_src = criterion(m_fimps, m_filter=m_flt, a_filter=a_src, aggregation=True)
+    c_tgt = criterion(m_score, row_filter=m_flt, col_filter=a_tgt, aggregation=False)
+    c_src = criterion(m_fimps, row_filter=m_flt, col_filter=a_src, aggregation=True)
 
-    c_all = c_src.reshape(-1, 1) * c_tgt
+    c_all = c_src * c_tgt + EPSILON
+    if any_target:
+        c_all = np.max(c_all, axis=1).reshape(-1, 1)
+
+    # Normalize
+    c_nrm = normalize(c_all, norm='l1', axis=0) 
+    c_nrm+=(1-np.max(c_nrm))
 
     # Pick
     m_sel_idx = pick(
         c_all,
         thresholds=thresholds,
-        any_target=any_target,
-        stochastic=stochastic,
+        picking_function=picking_function,
         random_state=random_state,
     )
     m_sel = m_flt[m_sel_idx]
@@ -79,12 +95,12 @@ def it(
     max_steps=4,
     init_threshold=1.0,
     stepsize=0.1,
+    picking_function="greedy",
     random_state=997,
 ):
     m_sel = []
     thresholds = _init_thresholds(init_threshold, stepsize)
     any_target = True
-    stochastic = False
 
     q_desc, q_targ, q_miss = code_to_query(q_code)
     a_src = q_desc
@@ -110,11 +126,14 @@ def it(
             a_src=a_src,
             a_tgt=a_tgt,
             m_avl=m_avl,
-            stochastic=stochastic,
             any_target=any_target,
             thresholds=thresholds,
+            picking_function=picking_function,
             random_state=random_state,
         )
+
+        if step_m_sel is None:
+            break
 
         a_prd = get_att_2d(m_codes[step_m_sel, :], kind="targ")
 
@@ -126,11 +145,10 @@ def it(
 
         if _stopping_criterion_it(q_targ, a_src):
             break
-
         if len(step_m_sel) == 0:
             raise ValueError(
-                "No progress was made. This indicates an impossible query."
-            )
+            "No progress was made. This indicates an impossible query."
+        )
 
     return m_sel
 
@@ -145,6 +163,8 @@ def rw(
     max_steps=4,
     init_threshold=1.0,
     stepsize=0.1,
+    straight=True,
+    picking_function="stochastic",
     random_state=997,
 ):
 
@@ -158,11 +178,12 @@ def rw(
             max_steps=max_steps,
             init_threshold=init_threshold,
             stepsize=stepsize,
-            random_state=random_state + i,  # Otherwise you do identical walks!
+            straight=straight,
+            picking_function=picking_function,
+            random_state=random_state + i * 997,  # Otherwise you do identical walks!
         )
         for i in range(nb_walks)
     ]
-
 
     return tuple(random_walks)
 
@@ -176,12 +197,13 @@ def walk(
     max_steps=4,
     init_threshold=1.0,
     stepsize=0.1,
+    straight=True,
+    picking_function="stochastic",
     random_state=997,
 ):
     m_sel = []
     thresholds = _init_thresholds(init_threshold, stepsize)
     any_target = True
-    stochastic = True
 
     q_desc, q_targ, q_miss = code_to_query(q_code)
     a_src = q_desc
@@ -200,16 +222,24 @@ def walk(
             a_src=a_src,
             a_tgt=a_tgt,
             m_avl=m_avl,
-            stochastic=stochastic,
             any_target=any_target,
             thresholds=thresholds,
-            random_state=random_state,
+            picking_function=picking_function,
+            random_state=random_state + step,
         )
 
-        # Potential targets = Descriptive attributes of the previous model
-        p_tgt = get_att_2d(m_codes[step_m_sel, :], kind="desc")
+        if step_m_sel is None:
+            break
 
-        a_tgt = np.setdiff1d(p_tgt, a_src)
+        # Step source attributes = potential targets
+        s_src = get_att_2d(m_codes[step_m_sel, :], kind="desc")
+
+        # Allow to predict anything that follows
+        if not straight:
+            s_tgt = get_att_2d(m_codes[step_m_sel, :], kind="targ")  # HACK
+            s_src = np.union1d(a_tgt, s_src)  # HACK
+
+        a_tgt = np.setdiff1d(s_src, a_src)
 
         m_avl = np.setdiff1d(m_avl, step_m_sel)
         m_sel.insert(0, step_m_sel)
@@ -226,21 +256,21 @@ def walk(
 
 
 # MRAI-IT-RW Criterion
-def criterion(m_matrix, m_filter=None, a_filter=None, aggregation=None):
+def criterion(matrix, row_filter=None, col_filter=None, aggregation=None):
     """
     Typical usecase 
     
-    m_matrix = m_fimps
+    matrix = m_fimps
     
-    m_filter = available models
-    a_filter = available attributes.
+    row_filter = available models
+    col_filter = available attributes.
     
     """
-    nb_rows = len(m_filter)
-    nb_cols = len(a_filter)
+    nb_rows = len(row_filter)
+    nb_cols = len(col_filter)
 
-    m_idx = a_filter + m_filter.reshape(-1, 1) * m_matrix.shape[1]
-    c_matrix = m_matrix.take(m_idx.flat).reshape(nb_rows, nb_cols)
+    m_idx = col_filter + row_filter.reshape(-1, 1) * matrix.shape[1]
+    c_matrix = matrix.take(m_idx.flat).reshape(nb_rows, nb_cols)
 
     if aggregation is None:
         return c_matrix
@@ -249,62 +279,62 @@ def criterion(m_matrix, m_filter=None, a_filter=None, aggregation=None):
 
 
 # Picks
-def pick(
-    criteria, thresholds=False, any_target=False, stochastic=False, random_state=997
-):
-
-    if thresholds is False:
-        return np.where(criteria >= 0)[0]
-    else:
-        m_sel = []
-
-        picking_function = _stochastic_pick if stochastic else _greedy_pick
-
-        if any_target:
-
-            criteria = np.max(criteria, axis=1).reshape(-1, 1)
-
-        for c_idx in range(criteria.shape[1]):
-            m_sel.extend(
-                picking_function(
-                    criteria[:, c_idx], thresholds=thresholds, random_state=random_state
-                )
-            )
-
-        return np.unique(m_sel)
+def _all_pick(criterion, **kwargs):
+    return np.where(criterion >= 0.0)[0]
 
 
-def _greedy_pick(c_all, thresholds=None, **kwargs):
+def _greedy_pick(criterion, thresholds=None, **kwargs):
 
     for thr in thresholds:
-        #m_sel = np.where(c_all >= np.quantile(c_all, 1.0-thr))[0]
-        m_sel = np.where(c_all >= thr)[0]
+        m_sel = np.where(criterion >= thr)[0]
+
         if _stopping_criterion_greedy_pick(m_sel):
             break
     return m_sel
 
 
-def _stochastic_pick(c_all, random_state=997, **kwargs):
+def _stochastic_pick(c_all, random_state=997, normalize=True, **kwargs):
     assert len(c_all) > 0
+
+    if normalize:
+        c_all = _criteria_to_distribution(c_all)
+
     np.random.seed(random_state)
-    norm = np.linalg.norm(c_all, 1)
-
-    if norm > 0:
-        distribution = c_all / norm
-    else:
-        distribution = np.full(len(c_all), 1 / len(c_all))
-
-    #check = np.sum(distribution[:-1])
-    #while check > 1.0:
-    #    print("ADAPTATION")
-    #    distribution = distribution*0.95
-    #   check = np.sum(distribution[:-1])
 
     try:
-        draw = np.random.multinomial(1, distribution, size=1)
+        draw = np.random.multinomial(1, c_all, size=1)
     except ValueError:
-        draw = np.random.multinomial(1, distribution*0.95, size=1)
-    return np.where(draw == 1)[1]
+        draw = np.random.multinomial(1, c_all * 0.95, size=1)
+
+    m_sel = np.where(draw == 1)[1]
+    return m_sel
+
+
+def _random_pick(criterion, random_state=997, **kwargs):
+    criterion = _criteria_to_uniform_distribution(criterion)
+    return _stochastic_pick(criterion, normalize=False)
+
+
+PICKS = dict(
+    all=_all_pick, greedy=_greedy_pick, stochastic=_stochastic_pick, random=_random_pick
+)
+
+
+def pick(criteria, thresholds=None, picking_function="greedy", random_state=997):
+    m_sel = []
+
+    for c_idx in range(criteria.shape[1]):
+        c_act = criteria[:, c_idx]
+        if not np.any(c_act):
+            c_act = _criteria_to_uniform_distribution(c_act)
+
+        m_sel.extend(
+            PICKS[picking_function](
+                c_act, thresholds=thresholds, random_state=random_state
+            )
+        )
+
+    return np.unique(m_sel)
 
 
 # Stopping Criteria
@@ -324,8 +354,23 @@ def _stopping_criterion_greedy_pick(m_sel):
 
 
 # Helpers
-def _init_thresholds(init_threshold, stepsize, tolerance=1*10**(-4)):
-    thresholds = np.arange(init_threshold, -stepsize, -stepsize, dtype=np.float32)
+def _criteria_to_uniform_distribution(criteria):
+    return np.full(criteria.shape, 1 / criteria.shape[0])
+
+
+def _criteria_to_distribution(criteria, epsilon=EPSILON):
+    # Criteria = VECTOR in [0,1]
+    norm = np.sum(criteria)
+
+    if norm < epsilon:
+        dist = _criteria_to_uniform_distribution(criteria)
+    else:
+        dist = criteria / norm
+    return dist
+
+
+def _init_thresholds(init_threshold, stepsize, tolerance=EPSILON):
+    thresholds = np.arange(init_threshold, -1 - stepsize, -stepsize)
 
     # Otherwise rounding errors in feature importances fuck your shit up.
     thresholds[0] = thresholds[0] - tolerance
