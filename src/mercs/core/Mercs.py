@@ -5,7 +5,7 @@ from timeit import default_timer
 import dask
 import itertools
 import numpy as np
-from catboost import CatBoostClassifier, CatBoostRegressor
+
 from dask import delayed
 from networkx import NetworkXUnfeasible, find_cycle, topological_sort
 from sklearn.ensemble import (
@@ -17,10 +17,34 @@ from sklearn.ensemble import (
 from sklearn.impute import SimpleImputer
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
-#from PxW import RFClassifier, RFRegressor
-import wekalearn
-from xgboost import XGBClassifier, XGBRegressor
-from lightgbm import LGBMClassifier, LGBMRegressor
+try:
+    from xgboost import XGBClassifier as XGBC
+    from xgboost import XGBRegressor as XGBR
+except:
+    XGBC, XGBR = None, None
+    warnings.warn("xgboost not found, you cannot use this as an underlying learner.")
+
+try:
+    from lightgbm import LGBMClassifier as LGBMC
+    from lightgbm import LGBMRegressor as  LGBMR
+except:
+    LGBMC, LGBMR =  None, None
+    warnings.warn("lightgbm not found, you cannot use this as an underlying learner.")
+
+try:
+    from catboost import CatBoostClassifier as CBC
+    from catboost import CatBoostRegressor as CBR
+except:
+    CBC, CBR = None, None
+    warnings.warn("catboost not found, you cannot use this as an underlying learner.")
+
+try:
+    from wekalearn import RandomForestClassifier as WLC
+    from wekalearn import RandomForestRegressor as  WLR
+except:
+    WLC, WLR = None, None
+    warnings.warn("wekalearn not found, you cannot use this as an underlying learner.")
+
 
 from ..algo import (
     imputation,
@@ -60,24 +84,24 @@ class Mercs(object):
     classifier_algorithms = dict(
         DT=DecisionTreeClassifier,
         RF=RandomForestClassifier,
-        XGB=XGBClassifier,
-        xgb=XGBClassifier,
-        weka=wekalearn.RandomForestClassifier,
-        LGBM=LGBMClassifier,
-        lgbm=LGBMClassifier,
-        CB=CatBoostClassifier,
+        XGB=XGBC,
+        xgb=XGBC,
+        weka=WLC,
+        LGBM=LGBMC,
+        lgbm=LGBMC,
+        CB=CBC,
         extra=ExtraTreesClassifier,
     )
 
     regressor_algorithms = dict(
         DT=DecisionTreeRegressor,
         RF=RandomForestRegressor,
-        XGB=XGBRegressor,
-        xgb=XGBRegressor,
-        weka=wekalearn.RandomForestRegressor,
-        LGBM=LGBMRegressor,
-        lgbm=LGBMRegressor,
-        CB=CatBoostRegressor,
+        XGB=XGBR,
+        xgb=XGBR,
+        weka=WLR,
+        LGBM=LGBMR,
+        lgbm=LGBMR,
+        CB=CBR,
         extra=ExtraTreesRegressor,
     )
 

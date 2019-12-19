@@ -3,7 +3,13 @@ import warnings
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from catboost import CatBoostClassifier, CatBoostRegressor
+
+try:
+    from catboost import CatBoostClassifier as CBC
+    from catboost import CatBoostRegressor as CBR
+except:
+    CBC, CBR = None, None
+    warnings.warn("catboost not found, you cannot use this as an underlying learner.")
 
 
 class CanonicalModel(object):
@@ -40,7 +46,7 @@ class CanonicalModel(object):
             self.predict_proba = self.model.predict_proba
             self.classes_ = self.model.classes_
 
-            if isinstance(model, CatBoostClassifier):
+            if isinstance(model, CBC):
                 self.n_classes_ = len(self.classes_)
                 self.classes_ = [int(c) for c in self.classes_]
                 self.predict = catboost_predict(self.model.predict)

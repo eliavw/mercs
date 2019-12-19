@@ -17,3 +17,6 @@ dependencies:
   - pip:
     - pydot
     - xgboost
+    - graph_tool
+    - lightgbm
+    - catboost

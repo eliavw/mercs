@@ -3,16 +3,41 @@ from functools import partial, wraps
 import itertools
 import numpy as np
 import pandas as pd
-from catboost import CatBoostClassifier, CatBoostRegressor
+
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, ExtraTreesClassifier, ExtraTreesRegressor
 from sklearn.metrics import f1_score, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
-import wekalearn
 from joblib import Parallel, delayed
-from lightgbm import LGBMClassifier, LGBMRegressor
-from xgboost import XGBClassifier, XGBRegressor
+
+try:
+    from xgboost import XGBClassifier as XGBC
+    from xgboost import XGBRegressor as XGBR
+except:
+    XGBC, XGBR = None, None
+    warnings.warn("xgboost not found, you cannot use this as an underlying learner.")
+
+try:
+    from lightgbm import LGBMClassifier as LGBMC
+    from lightgbm import LGBMRegressor as  LGBMR
+except:
+    LGBMC, LGBMR =  None, None
+    warnings.warn("lightgbm not found, you cannot use this as an underlying learner.")
+
+try:
+    from catboost import CatBoostClassifier as CBC
+    from catboost import CatBoostRegressor as CBR
+except:
+    CBC, CBR = None, None
+    warnings.warn("catboost not found, you cannot use this as an underlying learner.")
+
+try:
+    from wekalearn import RandomForestClassifier as WLC
+    from wekalearn import RandomForestRegressor as  WLR
+except:
+    WLC, WLR = None, None
+    warnings.warn("wekalearn not found, you cannot use this as an underlying learner.")
 
 from ..composition.CanonicalModel import CanonicalModel
 from ..utils import code_to_query, debug_print, get_att
@@ -217,6 +242,7 @@ def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, **kwargs):
 
     Model is a machine learning method that has a .fit() method.
     """
+    assert learner is not None
 
     i, o = data[:, desc_ids], data[:, targ_ids]
 
@@ -230,7 +256,7 @@ def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, **kwargs):
         # If output is single variable, we need 1D matrix
         o = o.ravel()
 
-    if learner in {LGBMClassifier, LGBMRegressor}:
+    if learner in {LGBMC, LGBMR}:
         categorical_feature = kwargs.pop("categorical_feature")
         model = learner(**kwargs)
         model.fit(i, o, categorical_feature=categorical_feature)
@@ -248,13 +274,14 @@ def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, **kwargs):
 
 # Helpers
 def _add_categorical_features_to_kwargs(learner, desc_ids, nominal_attributes, kwargs):
+    assert learner is not None
     cat_features = _get_cat_features(desc_ids, nominal_attributes)
 
-    if learner in {CatBoostClassifier, CatBoostRegressor}:
+    if learner in {CBC, CBR}:
         kwargs["cat_features"] = cat_features
-    elif learner in {wekalearn.RandomForestClassifier, wekalearn.RandomForestRegressor}:
+    elif learner in {WLC, WLR}:
         kwargs["cat_features"] = cat_features
-    elif learner in {LGBMClassifier, LGBMRegressor}:
+    elif learner in {LGBMC, LGBMR}:
         kwargs["categorical_feature"] = cat_features
 
     return kwargs
