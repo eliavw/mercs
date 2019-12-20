@@ -248,9 +248,65 @@
       
     
     
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Quickstart
+      </label>
+    
     <a href="./" title="Quickstart" class="md-nav__link md-nav__link--active">
       Quickstart
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preliminaries" class="md-nav__link">
+    Preliminaries
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#imports" class="md-nav__link">
+    Imports
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fit" class="md-nav__link">
+    Fit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prediction" class="md-nav__link">
+    Prediction
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -272,6 +328,49 @@
     
   
   
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preliminaries" class="md-nav__link">
+    Preliminaries
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#imports" class="md-nav__link">
+    Imports
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fit" class="md-nav__link">
+    Fit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prediction" class="md-nav__link">
+    Prediction
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -286,42 +385,190 @@
                 
                 
                 <h1 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h1>
-<h1 id="preliminaries">Preliminaries<a class="headerlink" href="#preliminaries" title="Permanent link">&para;</a></h1>
-<h2 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h2>
+<h2 id="preliminaries">Preliminaries<a class="headerlink" href="#preliminaries" title="Permanent link">&para;</a></h2>
+<h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">mercs</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">mercs.tests</span> <span class="kn">import</span> <span class="n">load_iris</span><span class="p">,</span> <span class="n">default_dataset</span>
 <span class="kn">from</span> <span class="nn">mercs.core</span> <span class="kn">import</span> <span class="n">Mercs</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </pre></div>
 
-<h1 id="fit">Fit<a class="headerlink" href="#fit" title="Permanent link">&para;</a></h1>
+<h2 id="fit">Fit<a class="headerlink" href="#fit" title="Permanent link">&para;</a></h2>
 <p>Here a small MERCS testdrive for what I suppose you'll need. First, let us generate a basic dataset. Some utility-functions are integrated in MERCS so that goes like this</p>
-<div class="codehilite"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">default_dataset</span><span class="p">(</span><span class="n">n_features</span><span class="o">=</span><span class="mi">4</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="mi">0</span><span class="p">)</span>
-<span class="n">train</span><span class="p">[:</span><span class="mi">20</span><span class="p">]</span>
+<div class="codehilite"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">default_dataset</span><span class="p">(</span><span class="n">n_features</span><span class="o">=</span><span class="mi">8</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">**</span> <span class="mi">0</span><span class="p">)</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 
-<div class="codehilite"><pre><span></span>array([[-1.32215078, -0.79095656,  0.51626038, -0.48405183,  1.        ],
-       [-1.81333888,  0.62979917,  0.97189032,  1.93749521,  1.        ],
-       [-0.86602753, -0.7458731 ,  0.34843253, -1.04698596,  1.        ],
-       [-0.4310274 , -0.19616028, -2.8226608 , -1.44558936,  0.        ],
-       [-2.51221012, -3.31467898,  4.22965537,  0.14797735,  0.        ],
-       [-0.03665064,  0.07566481,  2.15518439,  1.21783179,  0.        ],
-       [-1.12285279, -1.20080724,  0.60774537, -0.17858784,  0.        ],
-       [-1.12416734, -1.02493785, -1.05914756, -1.90971485,  0.        ],
-       [-1.2152382 , -2.86791935,  1.10903289, -3.02430913,  1.        ],
-       [-0.3775988 , -0.7107917 , -0.73213335, -2.3530741 ,  0.        ],
-       [ 0.12210504,  0.44135258,  2.26863961, -0.08306471,  0.        ],
-       [ 0.5373043 , -0.2780344 ,  2.43787375,  2.68441233,  0.        ],
-       [ 1.47020219, -0.46290396, -2.32769304,  1.26565925,  1.        ],
-       [ 1.14584153, -0.09836175, -2.06298865,  2.47742251,  1.        ],
-       [-0.49319527,  2.34222823,  1.08518984,  1.8631808 ,  1.        ],
-       [-1.35083251,  0.08519989,  0.55188636, -0.17132777,  0.        ],
-       [-1.31578006, -2.4124212 ,  1.07133708, -2.31703991,  1.        ],
-       [-0.32742585, -0.20186463,  1.07377589, -0.28283357,  1.        ],
-       [-0.08899953,  0.37123321, -1.35779252,  1.26150277,  1.        ],
-       [-1.77134206, -1.96791996,  0.59301804, -0.77357532,  0.        ]])
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>0</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>-1.322151</td>
+      <td>-0.790957</td>
+      <td>0.516260</td>
+      <td>-0.484052</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>-1.813339</td>
+      <td>0.629799</td>
+      <td>0.971890</td>
+      <td>1.937495</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>-0.866028</td>
+      <td>-0.745873</td>
+      <td>0.348433</td>
+      <td>-1.046986</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>-0.431027</td>
+      <td>-0.196160</td>
+      <td>-2.822661</td>
+      <td>-1.445589</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>-2.512210</td>
+      <td>-3.314679</td>
+      <td>4.229655</td>
+      <td>0.147977</td>
+      <td>0.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="codehilite"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
 </pre></div>
 
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>0</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>-0.557043</td>
+      <td>-0.559566</td>
+      <td>0.006219</td>
+      <td>0.009929</td>
+      <td>0.495000</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>1.320172</td>
+      <td>1.395167</td>
+      <td>1.513970</td>
+      <td>1.541863</td>
+      <td>0.500288</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>-4.843622</td>
+      <td>-4.530188</td>
+      <td>-4.497019</td>
+      <td>-4.653281</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>-1.349024</td>
+      <td>-1.500278</td>
+      <td>-1.026567</td>
+      <td>-1.076323</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>-0.705760</td>
+      <td>-0.698342</td>
+      <td>0.344050</td>
+      <td>0.040782</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>0.237204</td>
+      <td>0.271365</td>
+      <td>1.151239</td>
+      <td>1.071138</td>
+      <td>1.000000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>3.371588</td>
+      <td>3.789293</td>
+      <td>4.229655</td>
+      <td>5.090814</td>
+      <td>1.000000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 <p>Now let's train a MERCS model. To know what options you have, come talk to me or dig in the code. For induction, <code>nb_targets</code> and <code>nb_iterations</code> matter most. Number of targets speaks for itself, number of iterations manages the amount of trees <em>for each target</em>. With <code>n_jobs</code> you can do multi-core learning (with joblib, really basic, but works fine on single machine), that makes stuff faster. <code>fraction_missing</code> sets the amount of attributes that is missing for a tree. However, this parameter only has an effect if you use the <code>random</code> selection algorithm. The alternative is the <code>base</code> algorithm, which selects targets, and uses all the rest as input.</p>
 <div class="codehilite"><pre><span></span><span class="n">clf</span> <span class="o">=</span> <span class="n">Mercs</span><span class="p">(</span>
@@ -350,10 +597,10 @@
 <div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">nominal_attributes</span><span class="o">=</span><span class="n">nominal_ids</span><span class="p">)</span>
 </pre></div>
 
-<div class="codehilite"><pre><span></span>/cw/dtaijupiter/NoCsBack/dtai/elia/mercs/src/mercs/algo/induction.py:185: UserWarning: Training is being parallellized using Joblib. Number of jobs = 8
+<div class="codehilite"><pre><span></span>/cw/dtaijupiter/NoCsBack/dtai/elia/mercs/src/mercs/algo/induction.py:191: UserWarning: Training is being parallellized using Joblib. Number of jobs = 8
   warnings.warn(msg)
 [Parallel(n_jobs=8)]: Using backend LokyBackend with 8 concurrent workers.
-[Parallel(n_jobs=8)]: Done   6 out of   6 | elapsed:    2.2s finished
+[Parallel(n_jobs=8)]: Done   6 out of   6 | elapsed:    2.3s finished
 /cw/dtaijupiter/NoCsBack/dtai/elia/miniconda/envs/rwrf/lib/python3.7/site-packages/sklearn/metrics/classification.py:1437: UndefinedMetricWarning: F-score is ill-defined and being set to 0.0 in labels with no predicted samples.
   &#39;precision&#39;, &#39;predicted&#39;, average, warn_for)
 </pre></div>
@@ -363,12 +610,12 @@
 <div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">m_list</span>
 </pre></div>
 
-<div class="codehilite"><pre><span></span>[&lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7f3c1697f9d0&gt;,
- &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7f3c1697f710&gt;,
- &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7f3c1697f290&gt;,
- &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7f3c169ed810&gt;,
- &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7f3c22066b10&gt;,
- &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7f3c169fb310&gt;]
+<div class="codehilite"><pre><span></span>[&lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7fcf972151d0&gt;,
+ &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7fcf97220650&gt;,
+ &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7fcf97220710&gt;,
+ &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7fcf9729cc90&gt;,
+ &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7fcf97204d10&gt;,
+ &lt;mercs.composition.CanonicalModel.CanonicalModel at 0x7fcfd0465b50&gt;]
 </pre></div>
 
 
@@ -433,35 +680,48 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>
-</pre></div>
-
-<p>And that concludes my quick tour of MERCS learns this stuff. Let me know if it does not behave as it should.</p>
-<h1 id="prediction">Prediction<a class="headerlink" href="#prediction" title="Permanent link">&para;</a></h1>
+<p>And that concludes my quick tour of how to fit with MERCS.</p>
+<h2 id="prediction">Prediction<a class="headerlink" href="#prediction" title="Permanent link">&para;</a></h2>
 <p>First, we generate a query.</p>
 <div class="codehilite"><pre><span></span><span class="c1"># Single target</span>
 <span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 <span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">q_code</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query code is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
 
 <span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
 <span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
 </pre></div>
 
-<div class="codehilite"><pre><span></span>array([0., 0., 0., 1., 1., 1., 1., 0., 1., 0.])
+<div class="codehilite"><pre><span></span>Query code is: [0 0 0 0 1]
+
+
+
+
+
+array([0., 0., 0., 1., 1., 1., 1., 0., 1., 0.])
 </pre></div>
 
 
+<div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">show_q_diagram</span><span class="p">()</span>
+</pre></div>
+
+<p><img alt="svg" src="../quickstart_files/quickstart_21_0.svg" /></p>
 <div class="codehilite"><pre><span></span><span class="c1"># Multi-target</span>
 <span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 <span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">q_code</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query code is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
 
 <span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
 <span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
 </pre></div>
 
-<div class="codehilite"><pre><span></span>array([[ 0.06746825,  0.        ],
+<div class="codehilite"><pre><span></span>Query code is: [0 0 0 1 1]
+
+
+
+
+
+array([[ 0.06746825,  0.        ],
        [-0.57445471,  1.        ],
        [ 1.58481446,  0.        ],
        [-0.57445471,  1.        ],
@@ -474,17 +734,21 @@
 </pre></div>
 
 
+<div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">show_q_diagram</span><span class="p">()</span>
+</pre></div>
+
+<p><img alt="svg" src="../quickstart_files/quickstart_23_0.svg" /></p>
 <div class="codehilite"><pre><span></span><span class="c1"># Missing attributes</span>
 <span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 <span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">q_code</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">q_code</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query code is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
 
 <span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
 <span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
 </pre></div>
 
-<div class="codehilite"><pre><span></span>[-1  0  0  0  1]
+<div class="codehilite"><pre><span></span>Query code is: [-1  0  0  0  1]
 
 
 
@@ -497,9 +761,7 @@ array([0., 0., 0., 0., 1., 1., 1., 1., 0., 0.])
 <div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">show_q_diagram</span><span class="p">()</span>
 </pre></div>
 
-<p><img alt="svg" src="../quickstart_files/quickstart_23_0.svg" /></p>
-<div class="codehilite"><pre><span></span>
-</pre></div>
+<p><img alt="svg" src="../quickstart_files/quickstart_25_0.svg" /></p>
                 
                   
                 

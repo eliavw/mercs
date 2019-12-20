@@ -1,0 +1,66 @@
+<svg height="188pt" viewBox="0.00 0.00 254.19 188.00" width="254pt" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g class="graph" id="graph0" transform="scale(1 1) rotate(0) translate(4 184)">
+<title>G</title>
+<polygon fill="white" points="-4,4 -4,-184 250.194,-184 250.194,4 -4,4" stroke="none"/>
+<!-- (&#39;D&#39;, 1) -->
+<g class="node" id="node1"><title>('D', 1)</title>
+<ellipse cx="35.0969" cy="-18" fill="none" rx="35.194" ry="18" stroke="black"/>
+<text font-family="Times,serif" font-size="14.00" text-anchor="middle" x="35.0969" y="-14.3">('D', 1)</text>
+</g>
+<!-- (&#39;M&#39;, 0) -->
+<g class="node" id="node2"><title>('M', 0)</title>
+<ellipse cx="77.0969" cy="-90" fill="none" rx="37.0935" ry="18" stroke="black"/>
+<text font-family="Times,serif" font-size="14.00" text-anchor="middle" x="77.0969" y="-86.3">('M', 0)</text>
+</g>
+<!-- (&#39;D&#39;, 1)&#45;&gt;(&#39;M&#39;, 0) -->
+<g class="edge" id="edge1"><title>('D', 1)-&gt;('M', 0)</title>
+<path d="M45.0503,-35.589C50.124,-44.0451 56.4003,-54.5056 62.0499,-63.9217" fill="none" stroke="black"/>
+<polygon fill="black" points="59.0687,-65.7559 67.2149,-72.5301 65.0711,-62.1544 59.0687,-65.7559" stroke="black"/>
+</g>
+<!-- (&#39;D&#39;, 4) -->
+<g class="node" id="node6"><title>('D', 4)</title>
+<ellipse cx="123.097" cy="-162" fill="none" rx="35.194" ry="18" stroke="black"/>
+<text font-family="Times,serif" font-size="14.00" text-anchor="middle" x="123.097" y="-158.3">('D', 4)</text>
+</g>
+<!-- (&#39;M&#39;, 0)&#45;&gt;(&#39;D&#39;, 4) -->
+<g class="edge" id="edge2"><title>('M', 0)-&gt;('D', 4)</title>
+<path d="M87.9982,-107.589C93.5551,-116.045 100.429,-126.506 106.617,-135.922" fill="none" stroke="black"/>
+<polygon fill="black" points="103.857,-138.095 112.274,-144.53 109.707,-134.251 103.857,-138.095" stroke="black"/>
+</g>
+<!-- (&#39;D&#39;, 2) -->
+<g class="node" id="node3"><title>('D', 2)</title>
+<ellipse cx="123.097" cy="-18" fill="none" rx="35.194" ry="18" stroke="black"/>
+<text font-family="Times,serif" font-size="14.00" text-anchor="middle" x="123.097" y="-14.3">('D', 2)</text>
+</g>
+<!-- (&#39;D&#39;, 2)&#45;&gt;(&#39;M&#39;, 0) -->
+<g class="edge" id="edge3"><title>('D', 2)-&gt;('M', 0)</title>
+<path d="M112.428,-35.2354C106.82,-43.7699 99.8223,-54.4178 93.538,-63.9809" fill="none" stroke="black"/>
+<polygon fill="black" points="90.5943,-62.0874 88.0274,-72.3666 96.4442,-65.9317 90.5943,-62.0874" stroke="black"/>
+</g>
+<!-- (&#39;M&#39;, 1) -->
+<g class="node" id="node4"><title>('M', 1)</title>
+<ellipse cx="169.097" cy="-90" fill="none" rx="37.0935" ry="18" stroke="black"/>
+<text font-family="Times,serif" font-size="14.00" text-anchor="middle" x="169.097" y="-86.3">('M', 1)</text>
+</g>
+<!-- (&#39;D&#39;, 2)&#45;&gt;(&#39;M&#39;, 1) -->
+<g class="edge" id="edge4"><title>('D', 2)-&gt;('M', 1)</title>
+<path d="M133.766,-35.2354C139.374,-43.7699 146.371,-54.4178 152.656,-63.9809" fill="none" stroke="black"/>
+<polygon fill="black" points="149.75,-65.9317 158.166,-72.3666 155.6,-62.0874 149.75,-65.9317" stroke="black"/>
+</g>
+<!-- (&#39;M&#39;, 1)&#45;&gt;(&#39;D&#39;, 4) -->
+<g class="edge" id="edge5"><title>('M', 1)-&gt;('D', 4)</title>
+<path d="M158.196,-107.589C152.639,-116.045 145.765,-126.506 139.577,-135.922" fill="none" stroke="black"/>
+<polygon fill="black" points="136.487,-134.251 133.92,-144.53 142.337,-138.095 136.487,-134.251" stroke="black"/>
+</g>
+<!-- (&#39;D&#39;, 3) -->
+<g class="node" id="node5"><title>('D', 3)</title>
+<ellipse cx="211.097" cy="-18" fill="none" rx="35.194" ry="18" stroke="black"/>
+<text font-family="Times,serif" font-size="14.00" text-anchor="middle" x="211.097" y="-14.3">('D', 3)</text>
+</g>
+<!-- (&#39;D&#39;, 3)&#45;&gt;(&#39;M&#39;, 1) -->
+<g class="edge" id="edge6"><title>('D', 3)-&gt;('M', 1)</title>
+<path d="M201.143,-35.589C196.07,-44.0451 189.794,-54.5056 184.144,-63.9217" fill="none" stroke="black"/>
+<polygon fill="black" points="181.123,-62.1544 178.979,-72.5301 187.125,-65.7559 181.123,-62.1544" stroke="black"/>
+</g>
+</g>
+</svg>
