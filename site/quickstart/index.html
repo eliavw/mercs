@@ -1,0 +1,1067 @@
+
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+        <meta name="description" content="Documentation website for mercs">
+      
+      
+      
+        <meta name="author" content="Elia vw">
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s\-]+">
+      
+      <link rel="shortcut icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.5.0">
+    
+    
+      
+        <title>Quickstart - mercs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/application.1b62728e.css">
+      
+        <link rel="stylesheet" href="../assets/stylesheets/application-palette.a8b3c06d.css">
+      
+      
+        
+        
+        <meta name="theme-color" content="#3f51b5">
+      
+    
+    
+      <script src="../assets/javascripts/modernizr.268332fc.js"></script>
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+      
+    
+    <link rel="stylesheet" href="../assets/fonts/material-icons.css">
+    
+      <link rel="manifest" href="../manifest.webmanifest">
+    
+    
+    
+      
+    
+    
+  </head>
+  
+    
+    
+    <body dir="ltr" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+          <svg xmlns="http://www.w3.org/2000/svg" width="416" height="448" viewBox="0 0 416 448" id="__github"><path fill="currentColor" d="M160 304q0 10-3.125 20.5t-10.75 19T128 352t-18.125-8.5-10.75-19T96 304t3.125-20.5 10.75-19T128 256t18.125 8.5 10.75 19T160 304zm160 0q0 10-3.125 20.5t-10.75 19T288 352t-18.125-8.5-10.75-19T256 304t3.125-20.5 10.75-19T288 256t18.125 8.5 10.75 19T320 304zm40 0q0-30-17.25-51T296 232q-10.25 0-48.75 5.25Q229.5 240 208 240t-39.25-2.75Q130.75 232 120 232q-29.5 0-46.75 21T56 304q0 22 8 38.375t20.25 25.75 30.5 15 35 7.375 37.25 1.75h42q20.5 0 37.25-1.75t35-7.375 30.5-15 20.25-25.75T360 304zm56-44q0 51.75-15.25 82.75-9.5 19.25-26.375 33.25t-35.25 21.5-42.5 11.875-42.875 5.5T212 416q-19.5 0-35.5-.75t-36.875-3.125-38.125-7.5-34.25-12.875T37 371.5t-21.5-28.75Q0 312 0 260q0-59.25 34-99-6.75-20.5-6.75-42.5 0-29 12.75-54.5 27 0 47.5 9.875t47.25 30.875Q171.5 96 212 96q37 0 70 8 26.25-20.5 46.75-30.25T376 64q12.75 25.5 12.75 54.5 0 21.75-6.75 42 34 40 34 99.5z"/></svg>
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+    
+      <a href="#quickstart" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href=".." title="mercs" class="md-header-nav__button md-logo">
+          
+            <i class="md-icon"></i>
+          
+        </a>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
+      </div>
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
+          
+            <span class="md-header-nav__topic">
+              mercs
+            </span>
+            <span class="md-header-nav__topic">
+              
+                Quickstart
+              
+            </span>
+          
+        </div>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
+          
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="__search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+      
+        <div class="md-flex__cell md-flex__cell--shrink">
+          <div class="md-header-nav__source">
+            
+
+
+  
+
+<a href="https://github.com/eliavw/mercs/" title="Go to repository" class="md-source" data-md-source="github">
+  
+    <div class="md-source__icon">
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <use xlink:href="#__github" width="24" height="24"></use>
+      </svg>
+    </div>
+  
+  <div class="md-source__repository">
+    eliavw/mercs
+  </div>
+</a>
+          </div>
+        </div>
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main" role="main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="__drawer">
+    <a href=".." title="mercs" class="md-nav__button md-logo">
+      
+        <i class="md-icon"></i>
+      
+    </a>
+    mercs
+  </label>
+  
+    <div class="md-nav__source">
+      
+
+
+  
+
+<a href="https://github.com/eliavw/mercs/" title="Go to repository" class="md-source" data-md-source="github">
+  
+    <div class="md-source__icon">
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <use xlink:href="#__github" width="24" height="24"></use>
+      </svg>
+    </div>
+  
+  <div class="md-source__repository">
+    eliavw/mercs
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href=".." title="Welcome" class="md-nav__link">
+      Welcome
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Quickstart
+      </label>
+    
+    <a href="./" title="Quickstart" class="md-nav__link md-nav__link--active">
+      Quickstart
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preliminaries" class="md-nav__link">
+    Preliminaries
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#imports" class="md-nav__link">
+    Imports
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fit" class="md-nav__link">
+    Fit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prediction" class="md-nav__link">
+    Prediction
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preliminaries" class="md-nav__link">
+    Preliminaries
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#imports" class="md-nav__link">
+    Imports
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fit" class="md-nav__link">
+    Fit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prediction" class="md-nav__link">
+    Prediction
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/eliavw/mercs/edit/master/docs/quickstart.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                
+                
+                <h1 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h1>
+<h2 id="preliminaries">Preliminaries<a class="headerlink" href="#preliminaries" title="Permanent link">&para;</a></h2>
+<h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">mercs</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">mercs.tests</span> <span class="kn">import</span> <span class="n">load_iris</span><span class="p">,</span> <span class="n">default_dataset</span>
+<span class="kn">from</span> <span class="nn">mercs.core</span> <span class="kn">import</span> <span class="n">Mercs</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+</pre></div>
+
+<h2 id="fit">Fit<a class="headerlink" href="#fit" title="Permanent link">&para;</a></h2>
+<p>Here a small MERCS testdrive for what I suppose you'll need. First, let us generate a basic dataset. Some utility-functions are integrated in MERCS so that goes like this</p>
+<div class="codehilite"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">default_dataset</span><span class="p">(</span><span class="n">n_features</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>0</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+      <th>5</th>
+      <th>6</th>
+      <th>7</th>
+      <th>8</th>
+      <th>9</th>
+      <th>10</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.675737</td>
+      <td>-0.476428</td>
+      <td>3.581450</td>
+      <td>0.183020</td>
+      <td>-1.777475</td>
+      <td>0.136767</td>
+      <td>1.160297</td>
+      <td>0.129889</td>
+      <td>1.260818</td>
+      <td>-1.564195</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1.173828</td>
+      <td>0.633868</td>
+      <td>1.371909</td>
+      <td>-1.326919</td>
+      <td>1.293080</td>
+      <td>1.524197</td>
+      <td>1.310965</td>
+      <td>-3.103991</td>
+      <td>-0.214067</td>
+      <td>1.064141</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>-5.643059</td>
+      <td>1.305686</td>
+      <td>4.253110</td>
+      <td>-2.597300</td>
+      <td>3.752776</td>
+      <td>-0.800193</td>
+      <td>1.173064</td>
+      <td>0.926055</td>
+      <td>-3.926815</td>
+      <td>-4.166201</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0.649619</td>
+      <td>1.774041</td>
+      <td>1.844340</td>
+      <td>1.939269</td>
+      <td>2.874112</td>
+      <td>1.844517</td>
+      <td>-1.189195</td>
+      <td>-1.955451</td>
+      <td>-3.466255</td>
+      <td>3.035215</td>
+      <td>1.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>-0.839893</td>
+      <td>-1.723207</td>
+      <td>-0.679333</td>
+      <td>2.020422</td>
+      <td>-1.034357</td>
+      <td>0.416687</td>
+      <td>1.367039</td>
+      <td>0.497800</td>
+      <td>-1.313362</td>
+      <td>-0.440382</td>
+      <td>1.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="codehilite"><pre><span></span><span class="n">df</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</pre></div>
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>0</th>
+      <th>1</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+      <th>5</th>
+      <th>6</th>
+      <th>7</th>
+      <th>8</th>
+      <th>9</th>
+      <th>10</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+      <td>800.000000</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>0.466173</td>
+      <td>0.001240</td>
+      <td>0.624970</td>
+      <td>-0.005191</td>
+      <td>0.450649</td>
+      <td>0.038921</td>
+      <td>-0.455200</td>
+      <td>0.072851</td>
+      <td>-0.472249</td>
+      <td>-0.418480</td>
+      <td>0.491250</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>2.036365</td>
+      <td>2.150285</td>
+      <td>2.168501</td>
+      <td>2.086619</td>
+      <td>1.953769</td>
+      <td>2.099301</td>
+      <td>2.078551</td>
+      <td>2.014238</td>
+      <td>1.898000</td>
+      <td>2.052702</td>
+      <td>0.500236</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>-7.455322</td>
+      <td>-6.817417</td>
+      <td>-6.925613</td>
+      <td>-7.030162</td>
+      <td>-5.708949</td>
+      <td>-6.865339</td>
+      <td>-7.238353</td>
+      <td>-6.184692</td>
+      <td>-6.159434</td>
+      <td>-8.705917</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>-0.954399</td>
+      <td>-1.509110</td>
+      <td>-0.816581</td>
+      <td>-1.380624</td>
+      <td>-0.691509</td>
+      <td>-1.329481</td>
+      <td>-1.756418</td>
+      <td>-1.224983</td>
+      <td>-1.703273</td>
+      <td>-1.797529</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>0.451760</td>
+      <td>0.075555</td>
+      <td>0.674027</td>
+      <td>0.118554</td>
+      <td>0.547505</td>
+      <td>0.108292</td>
+      <td>-0.493528</td>
+      <td>0.174550</td>
+      <td>-0.568166</td>
+      <td>-0.292757</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>1.847537</td>
+      <td>1.384226</td>
+      <td>2.148864</td>
+      <td>1.398455</td>
+      <td>1.820179</td>
+      <td>1.454181</td>
+      <td>0.836809</td>
+      <td>1.497582</td>
+      <td>0.712452</td>
+      <td>1.053721</td>
+      <td>1.000000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>6.365330</td>
+      <td>7.601766</td>
+      <td>6.390253</td>
+      <td>8.237993</td>
+      <td>7.501492</td>
+      <td>7.021821</td>
+      <td>6.489389</td>
+      <td>6.832418</td>
+      <td>6.903293</td>
+      <td>5.101133</td>
+      <td>1.000000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>Now let's train a MERCS model. To know what options you have, come talk to me or dig in the code. For induction, <code>nb_targets</code> and <code>nb_iterations</code> matter most. Number of targets speaks for itself, number of iterations manages the amount of trees <em>for each target</em>. With <code>n_jobs</code> you can do multi-core learning (with joblib, really basic, but works fine on single machine), that makes stuff faster. <code>fraction_missing</code> sets the amount of attributes that is missing for a tree. However, this parameter only has an effect if you use the <code>random</code> selection algorithm. The alternative is the <code>base</code> algorithm, which selects targets, and uses all the rest as input.</p>
+<div class="codehilite"><pre><span></span><span class="n">clf</span> <span class="o">=</span> <span class="n">Mercs</span><span class="p">(</span>
+    <span class="n">max_depth</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">selection_algorithm</span><span class="o">=</span><span class="s2">&quot;random&quot;</span><span class="p">,</span>
+    <span class="n">fraction_missing</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">nb_targets</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">nb_iterations</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">n_jobs</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">inference_algorithm</span><span class="o">=</span><span class="s2">&quot;dask&quot;</span><span class="p">,</span>
+    <span class="n">max_steps</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">prediction_algorithm</span><span class="o">=</span><span class="s2">&quot;it&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+
+<p>You have to specify the nominal attributes yourself. This determines whether a regressor or a classifier is learned for that target. MERCS takes care of grouping targets such that no mixed sets are created.</p>
+<div class="codehilite"><pre><span></span><span class="n">nominal_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">}</span>
+<span class="n">nominal_ids</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span>{10}
+</pre></div>
+
+
+<div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">nominal_attributes</span><span class="o">=</span><span class="n">nominal_ids</span><span class="p">)</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span>/cw/dtaijupiter/NoCsBack/dtai/elia/mercs/src/mercs/algo/induction.py:191: UserWarning: Training is being parallellized using Joblib. Number of jobs = 8
+  warnings.warn(msg)
+[Parallel(n_jobs=8)]: Using backend LokyBackend with 8 concurrent workers.
+[Parallel(n_jobs=8)]: Done  10 out of  12 | elapsed:    2.3s remaining:    0.5s
+[Parallel(n_jobs=8)]: Done  12 out of  12 | elapsed:    2.3s finished
+/cw/dtaijupiter/NoCsBack/dtai/elia/miniconda/envs/rwrf/lib/python3.7/site-packages/sklearn/metrics/classification.py:1437: UndefinedMetricWarning: F-score is ill-defined and being set to 0.0 in labels with no predicted samples.
+  &#39;precision&#39;, &#39;predicted&#39;, average, warn_for)
+</pre></div>
+
+
+<p>So, now we have learned trees with two targets, but only a single target was nominal. If MERCS worked well, it should have learned single-target classifiers (for attribute 4) and multi-target regressors for all other target sets.</p>
+<div class="codehilite"><pre><span></span><span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_list</span><span class="p">):</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Model with index: </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">    </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span>    Model with index: 0
+    DecisionTreeClassifier(class_weight=None, criterion=&#39;gini&#39;, max_depth=4,
+                       max_features=None, max_leaf_nodes=None,
+                       min_impurity_decrease=0.0, min_impurity_split=None,
+                       min_samples_leaf=1, min_samples_split=2,
+                       min_weight_fraction_leaf=0.0, presort=False,
+                       random_state=121958, splitter=&#39;best&#39;)
+
+
+    Model with index: 1
+    DecisionTreeClassifier(class_weight=None, criterion=&#39;gini&#39;, max_depth=4,
+                       max_features=None, max_leaf_nodes=None,
+                       min_impurity_decrease=0.0, min_impurity_split=None,
+                       min_samples_leaf=1, min_samples_split=2,
+                       min_weight_fraction_leaf=0.0, presort=False,
+                       random_state=671155, splitter=&#39;best&#39;)
+
+
+    Model with index: 2
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=131932, splitter=&#39;best&#39;)
+
+
+    Model with index: 3
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=365838, splitter=&#39;best&#39;)
+
+
+    Model with index: 4
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=259178, splitter=&#39;best&#39;)
+
+
+    Model with index: 5
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=644167, splitter=&#39;best&#39;)
+
+
+    Model with index: 6
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=110268, splitter=&#39;best&#39;)
+
+
+    Model with index: 7
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=732180, splitter=&#39;best&#39;)
+
+
+    Model with index: 8
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=54886, splitter=&#39;best&#39;)
+
+
+    Model with index: 9
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=137337, splitter=&#39;best&#39;)
+
+
+    Model with index: 10
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=999890, splitter=&#39;best&#39;)
+
+
+    Model with index: 11
+    DecisionTreeRegressor(criterion=&#39;mse&#39;, max_depth=4, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=521430, splitter=&#39;best&#39;)
+</pre></div>
+
+
+<p>So, that looks good already. Let's examine up close.</p>
+<div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span>array([[-1,  0,  0, -1, -1, -1, -1,  0,  0,  0,  1],
+       [ 0,  0, -1, -1, -1, -1, -1, -1, -1,  0,  1],
+       [-1, -1,  0, -1, -1, -1, -1,  1, -1,  1, -1],
+       [-1, -1, -1,  1,  1,  0,  0, -1,  0, -1, -1],
+       [-1,  1,  1, -1,  0, -1, -1, -1, -1,  0, -1],
+       [ 0,  0, -1, -1,  0,  1,  0,  0,  1, -1, -1],
+       [ 1,  0, -1, -1, -1, -1,  1,  0,  0, -1, -1],
+       [-1,  1,  1, -1, -1, -1, -1,  0,  0,  0,  0],
+       [ 0, -1,  0, -1,  0,  1, -1, -1, -1,  1,  0],
+       [ 1, -1, -1, -1, -1, -1,  1,  0, -1, -1,  0],
+       [-1,  0,  0, -1,  1, -1, -1, -1,  1, -1, -1],
+       [-1,  0, -1,  1, -1,  0, -1,  1,  0, -1,  0]])
+</pre></div>
+
+
+<p>That's the matrix that summarizes everything. This can be dense to parse, and there's alternatives to gain insights, for instance;</p>
+<div class="codehilite"><pre><span></span><span class="k">for</span> <span class="n">m_idx</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_list</span><span class="p">):</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Tree with id:          </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">    has source attributes: </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">    has target attributes: </span><span class="si">{}</span><span class="s2">,</span>
+<span class="s2">    and predicts </span><span class="si">{}</span><span class="s2"> attributes</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m_idx</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">desc_ids</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">targ_ids</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">out_kind</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span>    Tree with id:          0
+    has source attributes: [1, 2, 7, 8, 9]
+    has target attributes: [10],
+    and predicts nominal attributes
+
+
+    Tree with id:          1
+    has source attributes: [0, 1, 9]
+    has target attributes: [10],
+    and predicts nominal attributes
+
+
+    Tree with id:          2
+    has source attributes: [2]
+    has target attributes: [7, 9],
+    and predicts numeric attributes
+
+
+    Tree with id:          3
+    has source attributes: [5, 6, 8]
+    has target attributes: [3, 4],
+    and predicts numeric attributes
+
+
+    Tree with id:          4
+    has source attributes: [4, 9]
+    has target attributes: [1, 2],
+    and predicts numeric attributes
+
+
+    Tree with id:          5
+    has source attributes: [0, 1, 4, 6, 7]
+    has target attributes: [5, 8],
+    and predicts numeric attributes
+
+
+    Tree with id:          6
+    has source attributes: [1, 7, 8]
+    has target attributes: [0, 6],
+    and predicts numeric attributes
+
+
+    Tree with id:          7
+    has source attributes: [7, 8, 9, 10]
+    has target attributes: [1, 2],
+    and predicts numeric attributes
+
+
+    Tree with id:          8
+    has source attributes: [0, 2, 4, 10]
+    has target attributes: [5, 9],
+    and predicts numeric attributes
+
+
+    Tree with id:          9
+    has source attributes: [7, 10]
+    has target attributes: [0, 6],
+    and predicts numeric attributes
+
+
+    Tree with id:          10
+    has source attributes: [1, 2]
+    has target attributes: [4, 8],
+    and predicts numeric attributes
+
+
+    Tree with id:          11
+    has source attributes: [1, 5, 8, 10]
+    has target attributes: [3, 7],
+    and predicts numeric attributes
+</pre></div>
+
+
+<p>And that concludes my quick tour of how to fit with MERCS.</p>
+<h2 id="prediction">Prediction<a class="headerlink" href="#prediction" title="Permanent link">&para;</a></h2>
+<p>First, we generate a query.</p>
+<div class="codehilite"><pre><span></span><span class="c1"># Single target</span>
+<span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query code is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
+
+<span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
+<span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span>Query code is: [0 0 0 0 0 0 0 0 0 0 1]
+
+
+
+
+
+array([1., 0., 0., 0., 1., 0., 0., 1., 0., 0.])
+</pre></div>
+
+
+<div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">show_q_diagram</span><span class="p">()</span>
+</pre></div>
+
+<p><img alt="svg" src="../quickstart_files/quickstart_21_0.svg" /></p>
+<div class="codehilite"><pre><span></span><span class="c1"># Multi-target</span>
+<span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query code is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
+
+<span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
+<span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span>Query code is: [0 0 0 0 0 0 0 0 0 1 1]
+
+
+
+
+
+array([[ 0.8987434 ,  1.        ],
+       [-0.35476461,  0.        ],
+       [-0.35476461,  1.        ],
+       [-0.35476461,  0.        ],
+       [-0.6409689 ,  1.        ],
+       [-0.6409689 ,  1.        ],
+       [-1.70072951,  0.        ],
+       [-0.35476461,  1.        ],
+       [-0.6409689 ,  1.        ],
+       [-0.35476461,  0.        ]])
+</pre></div>
+
+
+<div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">show_q_diagram</span><span class="p">()</span>
+</pre></div>
+
+<p><img alt="svg" src="../quickstart_files/quickstart_23_0.svg" /></p>
+<div class="codehilite"><pre><span></span><span class="c1"># Missing attributes</span>
+<span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">q_code</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query code is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
+
+<span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
+<span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+
+<div class="codehilite"><pre><span></span>Query code is: [-1  0  0  0  0  0  0  0  0  0  1]
+
+
+
+
+
+array([1., 0., 0., 0., 1., 0., 0., 1., 0., 0.])
+</pre></div>
+
+
+<div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">show_q_diagram</span><span class="p">()</span>
+</pre></div>
+
+<p><img alt="svg" src="../quickstart_files/quickstart_25_0.svg" /></p>
+                
+                  
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href=".." title="Welcome" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Welcome
+              </span>
+            </div>
+          </a>
+        
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+          <div class="md-footer-copyright__highlight">
+            Copyright &copy; 2015 - 2019 Elia vw
+          </div>
+        
+        powered by
+        <a href="https://www.mkdocs.org">MkDocs</a>
+        and
+        <a href="https://squidfunk.github.io/mkdocs-material/">
+          Material for MkDocs</a>
+      </div>
+      
+  <div class="md-footer-social">
+    <link rel="stylesheet" href="../assets/fonts/font-awesome.css">
+    
+      <a href="https://github.com/eliavw" class="md-footer-social__link fa fa-github"></a>
+    
+  </div>
+
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/application.a8b5e56f.js"></script>
+      
+      <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
+      
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+      
+    
+  </body>
+</html>

@@ -3,6 +3,13 @@ from functools import partial
 from sklearn.metrics import f1_score, r2_score
 from sklearn.model_selection import train_test_split
 from ..utils.inference_tools import _dummy_array
+from ..utils import DESC_ENCODING, TARG_ENCODING, MISS_ENCODING
+
+
+def dummy_evaluation(data, m_codes, m_list, i_list, random_state=42, test_size=0.2):
+    m_score = np.zeros(m_codes.shape)
+    m_score[np.where(m_codes==TARG_ENCODING)] = 1
+    return m_score
 
 
 def base_evaluation(data, m_codes, m_list, i_list, random_state=42, test_size=0.2):

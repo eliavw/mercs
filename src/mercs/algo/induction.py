@@ -4,7 +4,12 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, ExtraTreesClassifier, ExtraTreesRegressor
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    RandomForestRegressor,
+    ExtraTreesClassifier,
+    ExtraTreesRegressor,
+)
 from sklearn.metrics import f1_score, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -20,9 +25,9 @@ except:
 
 try:
     from lightgbm import LGBMClassifier as LGBMC
-    from lightgbm import LGBMRegressor as  LGBMR
+    from lightgbm import LGBMRegressor as LGBMR
 except:
-    LGBMC, LGBMR =  None, None
+    LGBMC, LGBMR = None, None
     warnings.warn("lightgbm not found, you cannot use this as an underlying learner.")
 
 try:
@@ -34,7 +39,7 @@ except:
 
 try:
     from wekalearn import RandomForestClassifier as WLC
-    from wekalearn import RandomForestRegressor as  WLR
+    from wekalearn import RandomForestRegressor as WLR
 except:
     WLC, WLR = None, None
     warnings.warn("wekalearn not found, you cannot use this as an underlying learner.")
@@ -173,6 +178,7 @@ def expand_induction_algorithm(
 
 def _expand_m_list(m_list):
     return list(itertools.chain.from_iterable(m_list))
+
 
 def _build_models(parameters, n_jobs=1, verbose=0):
     m_list = []

@@ -1,13 +1,21 @@
 name: eliatest
 channels:
-  - defaults
-  - conda-forge
-  - pytorch
+    - defaults
+    - conda-forge
+    - pytorch
 dependencies:
-  - pytest
-  - jupyterlab
-  - mkdocs
-  - mkdocs-material
-  - pygments
-  - pylint
-  - pymdown-extensions
+    # Defaults
+    - pytest
+    - jupyterlab
+    - mkdocs
+    - mkdocs-material
+    - pygments
+    - pylint
+    - xgboost
+    - lightgbm
+    - catboost
+    - pip:
+        - mkdocs-minify-plugin>=0.2
+        - pymdown-extensions
+        - semantic_version
+        - matplotlib

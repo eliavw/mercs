@@ -26,9 +26,9 @@ except:
 
 try:
     from lightgbm import LGBMClassifier as LGBMC
-    from lightgbm import LGBMRegressor as  LGBMR
+    from lightgbm import LGBMRegressor as LGBMR
 except:
-    LGBMC, LGBMR =  None, None
+    LGBMC, LGBMR = None, None
     warnings.warn("lightgbm not found, you cannot use this as an underlying learner.")
 
 try:
@@ -40,7 +40,7 @@ except:
 
 try:
     from wekalearn import RandomForestClassifier as WLC
-    from wekalearn import RandomForestRegressor as  WLR
+    from wekalearn import RandomForestRegressor as WLR
 except:
     WLC, WLR = None, None
     warnings.warn("wekalearn not found, you cannot use this as an underlying learner.")
@@ -130,7 +130,9 @@ class Mercs(object):
     )
 
     evaluation_algorithms = dict(
-        base=evaluation.base_evaluation, default=evaluation.base_evaluation
+        base=evaluation.base_evaluation,
+        default=evaluation.base_evaluation,
+        dummy=evaluation.dummy_evaluation,
     )
 
     # Used in parse kwargs to identify parameters. If this identification goes wrong, you are sending settings
@@ -231,7 +233,6 @@ class Mercs(object):
         tic = default_timer()
 
         assert isinstance(X, np.ndarray)
-        binary_scores = not scores
 
         self.metadata = self._default_metadata(X)
         self._update_metadata(**kwargs)
@@ -255,8 +256,8 @@ class Mercs(object):
             **self.ind_cfg
         )
 
-        self._consistent_datastructures(binary_scores=binary_scores)
-        
+        self._consistent_datastructures()
+
         self.m_score = self.evaluation_algorithm(
             X, self.m_codes, self.m_list, self.i_list, **self.evl_cfg
         )

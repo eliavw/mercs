@@ -6,17 +6,14 @@ channels:
 dependencies:
   - python>=3.6
   - pip
-  - numpy
-  - scipy
-  - pandas
   - ipython
-  - matplotlib
-  - scikit-learn
-  - networkx
-  - dask
   - pip:
-    - pydot
-    - xgboost
-    - graph_tool
-    - lightgbm
-    - catboost
+      - numpy
+      - scipy
+      - pandas
+      - networkx
+      - scikit-learn
+      - dask
+      - toolz
+      - tornado
+      - pydot

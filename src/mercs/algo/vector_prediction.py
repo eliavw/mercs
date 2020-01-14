@@ -3,30 +3,35 @@ import warnings
 
 from sklearn.preprocessing import minmax_scale, normalize
 
-from ..utils import code_to_query, get_att_2d
+from ..utils import code_to_query, get_att_2d, TARG_ENCODING
 
 EPSILON = 0.00001
 
 
 # Strategies
-def mi(m_codes, m_fimps, m_score, q_code, m_avl=None, random_state=997):
+def mi(
+    m_codes,
+    m_fimps,
+    m_score,
+    q_code,
+    a_src=None,
+    a_tgt=None,
+    m_avl=None,
+    random_state=997,
+):
+    # Init
+    m_sel = []
+    m_avl = _init_m_avl(m_codes, m_avl=m_avl)
+    a_src, a_tgt = _init_a_src_a_tgt(q_code=q_code, a_src=a_src, a_tgt=a_tgt)
 
-    m_sel = mrai(
-        m_codes,
-        m_fimps,
-        m_score,
-        q_code,
-        thresholds=False,
-        a_src=None,
-        a_tgt=None,
-        m_avl=m_avl,
-        any_target=False,
-        picking_function="all",
-        random_state=random_state,
-    )
+    c_all = criterion(m_codes, row_filter=m_avl, col_filter=a_tgt, aggregation=False)
+    m_sel_idx = np.unique(np.where(c_all == TARG_ENCODING)[0]).astype(int)
+    m_sel = m_avl[m_sel_idx]
 
-    assert len(m_sel) > 0
-    return m_sel
+    if len(m_sel) == 0:
+        return None
+    else:
+        return m_sel
 
 
 def mrai(
@@ -45,45 +50,51 @@ def mrai(
     random_state=997,
 ):
     # Init
-    if m_avl is None:
-        m_avl = np.arange(m_codes.shape[0], dtype=np.int32)
+    m_sel = []
+    m_avl = _init_m_avl(m_codes, m_avl=m_avl)
+    thresholds = _init_thresholds(init_threshold, stepsize)
+    a_src, a_tgt = _init_a_src_a_tgt(q_code=q_code, a_src=a_src, a_tgt=a_tgt)
 
-    if thresholds is None:
-        thresholds = _init_thresholds(init_threshold, stepsize)
-
-    if a_src is None or a_tgt is None:
-        a_src, a_tgt, _ = code_to_query(q_code)
-
-    # Criterion
-    c_flt = criterion(m_score, row_filter=m_avl, col_filter=a_tgt, aggregation=True)
-    m_flt = m_avl[c_flt.flat > 0]
-
-    if len(m_flt) == 0:
-        warnings.warn("No model has an above zero score for the required targets.")
-        m_flt = m_avl
-        return None
-
-    c_tgt = criterion(m_score, row_filter=m_flt, col_filter=a_tgt, aggregation=False)
-    c_src = criterion(m_fimps, row_filter=m_flt, col_filter=a_src, aggregation=True)
-
-    c_all = c_src * c_tgt + EPSILON
-    if any_target:
-        c_all = np.max(c_all, axis=1).reshape(-1, 1)
-
-    # Normalize
-    c_nrm = normalize(c_all, norm='l1', axis=0) 
-    c_nrm+=(1-np.max(c_nrm))
-
-    # Pick
-    m_sel_idx = pick(
-        c_all,
-        thresholds=thresholds,
-        picking_function=picking_function,
+    # Filtering
+    m_flt = mi(
+        m_codes,
+        m_fimps,
+        m_score,
+        None,
+        a_src=a_src,
+        a_tgt=a_tgt,
+        m_avl=m_avl,
         random_state=random_state,
     )
-    m_sel = m_flt[m_sel_idx]
 
-    return m_sel
+    if m_flt is None:
+        warnings.warn("You reached a dead end.")
+        return m_flt
+    else:
+        # Criterion
+        c_tgt = criterion(
+            m_score, row_filter=m_flt, col_filter=a_tgt, aggregation=False
+        )
+        c_src = criterion(m_fimps, row_filter=m_flt, col_filter=a_src, aggregation=True)
+        c_all = c_src * c_tgt + EPSILON
+
+        if any_target:
+            c_all = np.max(c_all, axis=1).reshape(-1, 1)
+
+        # Normalize
+        c_nrm = normalize(c_all, norm="l1", axis=0)
+        c_nrm += 1 - np.max(c_nrm)
+
+        # Pick
+        m_sel_idx = pick(
+            c_all,
+            thresholds=thresholds,
+            picking_function=picking_function,
+            random_state=random_state,
+        )
+        m_sel = m_flt[m_sel_idx]
+
+        return m_sel
 
 
 def it(
@@ -99,15 +110,13 @@ def it(
     random_state=997,
 ):
     m_sel = []
+    m_avl = _init_m_avl(m_codes, m_avl=m_avl)
     thresholds = _init_thresholds(init_threshold, stepsize)
-    any_target = True
 
+    any_target = True
     q_desc, q_targ, q_miss = code_to_query(q_code)
     a_src = q_desc
     a_tgt = np.hstack([q_targ, q_miss])
-
-    if m_avl is None:
-        m_avl = np.arange(m_codes.shape[0], dtype=np.int32)
 
     for step in range(max_steps):
         # Check if this is our last chance
@@ -133,7 +142,9 @@ def it(
         )
 
         if step_m_sel is None:
-            break
+            raise ValueError(
+                "No progress was made. This indicates an impossible query."
+            )
 
         a_prd = get_att_2d(m_codes[step_m_sel, :], kind="targ")
 
@@ -145,10 +156,6 @@ def it(
 
         if _stopping_criterion_it(q_targ, a_src):
             break
-        if len(step_m_sel) == 0:
-            raise ValueError(
-            "No progress was made. This indicates an impossible query."
-        )
 
     return m_sel
 
@@ -202,15 +209,13 @@ def walk(
     random_state=997,
 ):
     m_sel = []
+    m_avl = _init_m_avl(m_codes, m_avl=m_avl)
     thresholds = _init_thresholds(init_threshold, stepsize)
-    any_target = True
 
+    any_target = True
     q_desc, q_targ, q_miss = code_to_query(q_code)
     a_src = q_desc
     a_tgt = q_targ
-
-    if m_avl is None:
-        m_avl = np.arange(m_codes.shape[0], dtype=np.int32)
 
     for step in reversed(range(max_steps)):
 
@@ -247,16 +252,11 @@ def walk(
         if _stopping_criterion_rw(a_tgt, step, m_avl):
             break
 
-        if len(step_m_sel) == 0:
-            raise ValueError(
-                "No progress was made. This indicates an impossible query."
-            )
-
     return m_sel
 
 
 # MRAI-IT-RW Criterion
-def criterion(matrix, row_filter=None, col_filter=None, aggregation=None):
+def criterion(matrix, row_filter=None, col_filter=None, aggregation=False):
     """
     Typical usecase 
     
@@ -272,10 +272,10 @@ def criterion(matrix, row_filter=None, col_filter=None, aggregation=None):
     m_idx = col_filter + row_filter.reshape(-1, 1) * matrix.shape[1]
     c_matrix = matrix.take(m_idx.flat).reshape(nb_rows, nb_cols)
 
-    if aggregation is None:
-        return c_matrix
-    else:
+    if aggregation:
         return np.sum(c_matrix, axis=1).reshape(-1, 1)
+    else:
+        return c_matrix
 
 
 # Picks
@@ -369,9 +369,29 @@ def _criteria_to_distribution(criteria, epsilon=EPSILON):
     return dist
 
 
-def _init_thresholds(init_threshold, stepsize, tolerance=EPSILON):
-    thresholds = np.arange(init_threshold, -1 - stepsize, -stepsize)
+# Inits
+def _init_thresholds(init_threshold, stepsize, thresholds=None, tolerance=EPSILON):
 
-    # Otherwise rounding errors in feature importances fuck your shit up.
-    thresholds[0] = thresholds[0] - tolerance
+    if thresholds is None:
+        thresholds = np.arange(init_threshold, -1 - stepsize, -stepsize)
+
+        # Otherwise rounding errors in feature importances fuck your shit up.
+        thresholds[0] = thresholds[0] - tolerance
+
     return thresholds
+
+
+def _init_m_avl(m_codes, m_avl=None):
+    if m_avl is None:
+        return np.arange(m_codes.shape[0], dtype=int)
+    else:
+        return m_avl
+
+
+def _init_a_src_a_tgt(q_code=None, a_src=None, a_tgt=None):
+    if q_code is not None:
+        a_src, a_tgt, _ = code_to_query(q_code)
+        return a_src, a_tgt
+    else:
+        return a_src, a_tgt
+

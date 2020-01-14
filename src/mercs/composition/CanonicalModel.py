@@ -46,7 +46,7 @@ class CanonicalModel(object):
             self.predict_proba = self.model.predict_proba
             self.classes_ = self.model.classes_
 
-            if isinstance(model, CBC):
+            if isinstance(model, type(CBC)):
                 self.n_classes_ = len(self.classes_)
                 self.classes_ = [int(c) for c in self.classes_]
                 self.predict = catboost_predict(self.model.predict)
