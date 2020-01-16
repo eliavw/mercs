@@ -23,10 +23,10 @@ def filename_data(dataset="iris", kind="train", separator="-", extension="csv"):
 
 
 def _detect_nominal(df):
-    nominal_columns = set(df.select_dtypes(exclude=['float']).columns)
-    
-    nominal_ids = {i for i,c in enumerate(df.columns) if c in nominal_columns}
-    
+    nominal_columns = set(df.select_dtypes(exclude=["float"]).columns)
+
+    nominal_ids = {i for i, c in enumerate(df.columns) if c in nominal_columns}
+
     return nominal_ids
 
 
@@ -41,14 +41,23 @@ def load_iris(df=False, nominal_ids=True):
     result = []
     result.append(df_train if df else df_train.values)
     result.append(df_test if df else df_test.values)
-    
+
     if nominal_ids:
         result.append(_detect_nominal(df_train))
 
     return result
 
+
 def default_dataset(
-    random_state=RANDOM_STATE, n_samples=10 ** 3, n_features=7, df=False
+    random_state=RANDOM_STATE,
+    n_samples=10 ** 3,
+    n_features=7,
+    n_redundant=0,
+    n_repeated=0,
+    test_size=0.2,
+    n_clusters_per_class=2,
+    df=False,
+    **kwargs
 ):
     """
     Generate a dataset to be used in tests.
@@ -59,15 +68,15 @@ def default_dataset(
     X, y = make_classification(
         n_samples=n_samples,
         n_features=n_features,
-        n_informative=n_features,
-        n_repeated=0,
-        n_redundant=0,
-        n_clusters_per_class=2,
+        n_repeated=n_repeated,
+        n_redundant=n_redundant,
+        n_clusters_per_class=n_clusters_per_class,
         random_state=random_state,
+        **kwargs
     )
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=random_state
+        X, y, test_size=test_size, random_state=random_state
     )
 
     if df:

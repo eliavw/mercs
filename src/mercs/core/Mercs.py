@@ -139,6 +139,7 @@ class Mercs(object):
     # somewhere you do not want them to be. So, this is a tricky part, and moreover hardcoded. In other words:
     # this is risky terrain, and should probably be done differently in the future.
     configuration_prefixes = dict(
+        imputation={"imputation", "imp"},
         induction={"induction", "ind"},
         selection={"selection", "sel"},
         prediction={"prediction", "pred", "prd"},
@@ -203,6 +204,7 @@ class Mercs(object):
         self.q_methods = []
 
         # Configurations
+        self.imp_cfg = self._default_config(self.imputer_algorithm)
         self.ind_cfg = self._default_config(self.induction_algorithm)
         self.sel_cfg = self._default_config(self.selection_algorithm)
         self.clf_cfg = self._default_config(self.classifier_algorithm)
@@ -212,6 +214,7 @@ class Mercs(object):
         self.evl_cfg = self._default_config(self.evaluation_algorithm)
 
         self.configuration = dict(
+            imputation=self.imp_cfg,
             induction=self.ind_cfg,
             selection=self.sel_cfg,
             classification=self.clf_cfg,
@@ -257,6 +260,10 @@ class Mercs(object):
         )
 
         self._consistent_datastructures()
+
+        if self.imputer_algorithm == self.imputer_algorithms.get('nan'):
+            # If you do no have imputers, you cannot use them as a baseline evaluation
+            self.evl_cfg['consider_imputations'] = False
 
         self.m_score = self.evaluation_algorithm(
             X, self.m_codes, self.m_list, self.i_list, **self.evl_cfg

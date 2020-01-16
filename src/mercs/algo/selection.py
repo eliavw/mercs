@@ -38,6 +38,9 @@ def random_selection_algorithm(
         nb_attributes = metadata["n_attributes"]
         nb_targets = _set_nb_targets(nb_targets, nb_attributes)
 
+        if fraction_missing in {'sqrt'}:
+            fraction_missing = np.sqrt(nb_attributes)/nb_attributes
+
         codes = []
         for attribute_kind in {"nominal_attributes", "numeric_attributes"}:
             potential_targets = np.array(list(metadata[attribute_kind]))
