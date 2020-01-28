@@ -771,7 +771,11 @@ class Mercs(object):
         filtered_nodes = list(reversed(filtered_nodes))
         return filtered_nodes
 
-    # Legacy (delete in a while)
+    # SYNTH
+    def autocomplete(X, **kwargs):
+        return
+
+    # Legacy (delete when I am sure they can go)
     def predict_old(
         self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs
     ):

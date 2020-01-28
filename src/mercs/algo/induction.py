@@ -46,7 +46,7 @@ except:
     warnings.warn("wekalearn not found, you cannot use this as an underlying learner.")
 
 from ..composition.CanonicalModel import CanonicalModel
-from ..utils import code_to_query, debug_print, get_att
+from ..utils import code_to_query, debug_print, get_att, get_i_o
 
 
 def base_induction_algorithm(
@@ -242,7 +242,7 @@ def _build_parameters(
     return parameters
 
 
-def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, **kwargs):
+def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, filter_nan=True, **kwargs):
     """
     Learn a model from the data.
 
@@ -253,7 +253,7 @@ def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, **kwargs):
     """
     assert learner is not None
 
-    i, o = data[:, desc_ids], data[:, targ_ids]
+    i, o = get_i_o(data, desc_ids, targ_ids, filter_nan=filter_nan)
 
     # Pre-processing
     if i.ndim == 1:
@@ -282,6 +282,8 @@ def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, **kwargs):
 
 
 # Helpers
+
+
 def _add_categorical_features_to_kwargs(learner, desc_ids, nominal_attributes, kwargs):
     assert learner is not None
     cat_features = _get_cat_features(desc_ids, nominal_attributes)
