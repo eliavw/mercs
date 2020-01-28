@@ -36,7 +36,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.5.0">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.4.2">
     
     
       
@@ -44,7 +44,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/application.1b62728e.css">
+      <link rel="stylesheet" href="../assets/stylesheets/application.30686662.css">
       
         <link rel="stylesheet" href="../assets/stylesheets/application-palette.a8b3c06d.css">
       
@@ -55,7 +55,7 @@
       
     
     
-      <script src="../assets/javascripts/modernizr.268332fc.js"></script>
+      <script src="../assets/javascripts/modernizr.74668098.js"></script>
     
     
       
@@ -388,11 +388,11 @@
 <h2 id="preliminaries">Preliminaries<a class="headerlink" href="#preliminaries" title="Permanent link">&para;</a></h2>
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">mercs</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">mercs.tests</span> <span class="kn">import</span> <span class="n">load_iris</span><span class="p">,</span> <span class="n">default_dataset</span>
 <span class="kn">from</span> <span class="nn">mercs.core</span> <span class="kn">import</span> <span class="n">Mercs</span>
 
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 </pre></div>
 
 <h2 id="fit">Fit<a class="headerlink" href="#fit" title="Permanent link">&para;</a></h2>
@@ -669,7 +669,7 @@
     <span class="n">nb_iterations</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
     <span class="n">n_jobs</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
     <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">inference_algorithm</span><span class="o">=</span><span class="s2">&quot;dask&quot;</span><span class="p">,</span>
+    <span class="n">inference_algorithm</span><span class="o">=</span><span class="s2">&quot;own&quot;</span><span class="p">,</span>
     <span class="n">max_steps</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
     <span class="n">prediction_algorithm</span><span class="o">=</span><span class="s2">&quot;it&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -690,8 +690,8 @@
 <div class="codehilite"><pre><span></span>/cw/dtaijupiter/NoCsBack/dtai/elia/mercs/src/mercs/algo/induction.py:191: UserWarning: Training is being parallellized using Joblib. Number of jobs = 8
   warnings.warn(msg)
 [Parallel(n_jobs=8)]: Using backend LokyBackend with 8 concurrent workers.
-[Parallel(n_jobs=8)]: Done  10 out of  12 | elapsed:    2.3s remaining:    0.5s
-[Parallel(n_jobs=8)]: Done  12 out of  12 | elapsed:    2.3s finished
+[Parallel(n_jobs=8)]: Done  10 out of  12 | elapsed:    2.4s remaining:    0.5s
+[Parallel(n_jobs=8)]: Done  12 out of  12 | elapsed:    2.4s finished
 /cw/dtaijupiter/NoCsBack/dtai/elia/miniconda/envs/rwrf/lib/python3.7/site-packages/sklearn/metrics/classification.py:1437: UndefinedMetricWarning: F-score is ill-defined and being set to 0.0 in labels with no predicted samples.
   &#39;precision&#39;, &#39;predicted&#39;, average, warn_for)
 </pre></div>
@@ -700,10 +700,10 @@
 <p>So, now we have learned trees with two targets, but only a single target was nominal. If MERCS worked well, it should have learned single-target classifiers (for attribute 4) and multi-target regressors for all other target sets.</p>
 <div class="codehilite"><pre><span></span><span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_list</span><span class="p">):</span>
     <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">    Model with index: </span><span class="si">{}</span><span class="s2"></span>
-<span class="s2">    </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">    Model with index: {}</span>
+<span class="s2">    {}</span>
 <span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 </pre></div>
 
 <div class="codehilite"><pre><span></span>    Model with index: 0
@@ -827,12 +827,12 @@
 <p>That's the matrix that summarizes everything. This can be dense to parse, and there's alternatives to gain insights, for instance;</p>
 <div class="codehilite"><pre><span></span><span class="k">for</span> <span class="n">m_idx</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_list</span><span class="p">):</span>
     <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">    Tree with id:          </span><span class="si">{}</span><span class="s2"></span>
-<span class="s2">    has source attributes: </span><span class="si">{}</span><span class="s2"></span>
-<span class="s2">    has target attributes: </span><span class="si">{}</span><span class="s2">,</span>
-<span class="s2">    and predicts </span><span class="si">{}</span><span class="s2"> attributes</span>
+<span class="s2">    Tree with id:          {}</span>
+<span class="s2">    has source attributes: {}</span>
+<span class="s2">    has target attributes: {},</span>
+<span class="s2">    and predicts {} attributes</span>
 <span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m_idx</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">desc_ids</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">targ_ids</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">out_kind</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 </pre></div>
 
 <div class="codehilite"><pre><span></span>    Tree with id:          0
@@ -914,7 +914,7 @@
 <div class="codehilite"><pre><span></span><span class="c1"># Single target</span>
 <span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 <span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query code is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;Query code is: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
 
 <span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
 <span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
@@ -937,7 +937,7 @@ array([1., 0., 0., 0., 1., 0., 0., 1., 0., 0.])
 <div class="codehilite"><pre><span></span><span class="c1"># Multi-target</span>
 <span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 <span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query code is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;Query code is: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
 
 <span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
 <span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
@@ -969,14 +969,14 @@ array([[ 0.8987434 ,  1.        ],
 <div class="codehilite"><pre><span></span><span class="c1"># Missing attributes</span>
 <span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 <span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">q_code</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query code is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
+<span class="n">q_code</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;Query code is: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
 
 <span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
 <span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
 </pre></div>
 
-<div class="codehilite"><pre><span></span>Query code is: [-1  0  0  0  0  0  0  0  0  0  1]
+<div class="codehilite"><pre><span></span>Query code is: [-1 -1 -1 -1 -1  0  0  0  0  0  1]
 
 
 
@@ -1056,7 +1056,7 @@ array([1., 0., 0., 0., 1., 0., 0., 1., 0., 0.])
       
     </div>
     
-      <script src="../assets/javascripts/application.a8b5e56f.js"></script>
+      <script src="../assets/javascripts/application.c648116f.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
       
