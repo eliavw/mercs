@@ -11,3 +11,10 @@ from .encoding import (
     get_att_2d,
     query_to_code,
 )
+from .decoration import (
+    DecoratedDecisionTreeClassifier,
+    DecoratedDecisionTreeRegressor,
+    DecoratedRandomForestRegressor,
+    DecoratedRandomForestClassifier,
+)
+

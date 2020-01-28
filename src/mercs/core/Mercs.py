@@ -65,6 +65,10 @@ from ..utils import (
     TARG_ENCODING,
     code_to_query,
     query_to_code,
+    DecoratedDecisionTreeClassifier,
+    DecoratedDecisionTreeRegressor,
+    DecoratedRandomForestClassifier,
+    DecoratedRandomForestRegressor
 )
 from ..visuals import save_diagram, show_diagram
 
@@ -78,12 +82,16 @@ class Mercs(object):
     )
 
     induction_algorithms = dict(
-        base=base_induction_algorithm, expand=expand_induction_algorithm
+        base=base_induction_algorithm,
+        default=base_induction_algorithm,
+        expand=expand_induction_algorithm
     )
 
     classifier_algorithms = dict(
         DT=DecisionTreeClassifier,
+        DDT=DecoratedDecisionTreeClassifier,
         RF=RandomForestClassifier,
+        DRF=DecoratedRandomForestClassifier,
         XGB=XGBC,
         xgb=XGBC,
         weka=WLC,
@@ -95,7 +103,9 @@ class Mercs(object):
 
     regressor_algorithms = dict(
         DT=DecisionTreeRegressor,
+        DDT=DecoratedDecisionTreeRegressor,
         RF=RandomForestRegressor,
+        DRF=DecoratedDecisionTreeRegressor,
         XGB=XGBR,
         xgb=XGBR,
         weka=WLR,
@@ -232,10 +242,9 @@ class Mercs(object):
 
         return
 
-    def fit(self, X, m_codes=None, scores=True, **kwargs):
-        tic = default_timer()
-
+    def fit(self, X, m_codes=None, **kwargs):
         assert isinstance(X, np.ndarray)
+        tic = default_timer()
 
         self.metadata = self._default_metadata(X)
         self._update_metadata(**kwargs)

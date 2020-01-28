@@ -39,7 +39,9 @@ def random_selection_algorithm(
         nb_targets = _set_nb_targets(nb_targets, nb_attributes)
 
         if fraction_missing in {'sqrt'}:
-            fraction_missing = np.sqrt(nb_attributes)/nb_attributes
+            fraction_missing = 1-np.sqrt(nb_attributes)/nb_attributes
+        elif fraction_missing in {"log2"}:
+            fraction_missing = 1-np.log2(nb_attributes)/nb_attributes
 
         codes = []
         for attribute_kind in {"nominal_attributes", "numeric_attributes"}:

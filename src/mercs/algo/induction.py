@@ -15,6 +15,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 from joblib import Parallel, delayed
+from ..utils.decoration import decorate_tree
 
 try:
     from xgboost import XGBClassifier as XGBC
@@ -173,7 +174,9 @@ def expand_induction_algorithm(
         verbose=verbose,
     )
 
-    return _expand_m_list(m_list)
+    m_list = _expand_m_list(m_list)
+
+    return m_list
 
 
 def _expand_m_list(m_list):
