@@ -764,61 +764,27 @@ array([[ 0.15161875,  0.        ],
 <div class="codehilite"><pre><span></span><span class="c1"># Missing attributes</span>
 <span class="n">q_code</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">m_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 <span class="n">q_code</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">q_code</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="n">q_code</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
 <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Query code is: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q_code</span><span class="p">))</span>
 
 <span class="n">y_pred</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">q_code</span><span class="o">=</span><span class="n">q_code</span><span class="p">)</span>
 <span class="n">y_pred</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
 </pre></div>
 
-<div class="codehilite"><pre><span></span>Query code is: [-1 -1 -1 -1]
+<div class="codehilite"><pre><span></span>Query code is: [-1 -1  0  1]
 
 
 
----------------------------------------------------------------------------
-
-ValueError                                Traceback (most recent call last)
-
-&lt;ipython-input-14-d0b05415b414&gt; in &lt;module&gt;
-      5 print(&quot;Query code is: {}&quot;.format(q_code))
-      6 
-----&gt; 7 y_pred = clf.predict(test, q_code=q_code)
-      8 y_pred[:10]
 
 
-/cw/dtaijupiter/NoCsBack/dtai/elia/mercs/src/mercs/core/Mercs.py in predict(self, X, q_code, inference_algorithm, prediction_algorithm, **kwargs)
-    343         tic_dask = default_timer()
-    344         X = X[:, self.q_model.desc_ids]
---&gt; 345         result = self.q_model.predict(X)
-    346         toc_dask = default_timer()
-    347
-
-
-/cw/dtaijupiter/NoCsBack/dtai/elia/mercs/src/mercs/composition/NewCompositeModel.py in predict(X, redo)
-     59             return collector.pop()
-     60         else:
----&gt; 61             return np.stack(collector, axis=1)
-     62 
-     63     return predict
-
-
-&lt;__array_function__ internals&gt; in stack(*args, **kwargs)
-
-
-~/miniconda3/envs/rwrf/lib/python3.7/site-packages/numpy/core/shape_base.py in stack(arrays, axis, out)
-    419     arrays = [asanyarray(arr) for arr in arrays]
-    420     if not arrays:
---&gt; 421         raise ValueError(&#39;need at least one array to stack&#39;)
-    422 
-    423     shapes = {arr.shape for arr in arrays}
-
-
-ValueError: need at least one array to stack
+array([0., 0., 0., 0., 0., 0., 0., 1., 1., 0.])
 </pre></div>
 
 
 <div class="codehilite"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">show_q_diagram</span><span class="p">()</span>
 </pre></div>
+
+<p><img alt="svg" src="../quickstart_files/quickstart_25_0.svg" /></p>
                 
                   
                 
