@@ -1,6 +1,6 @@
 # MERCS
 
-MERCS stands for **m**ulti-directional **e**nsembles of **c**lassification and **r**egression tree**s**. It is a novel ML-paradigm under active development at the [DTAI-lab at KU Leuven](https://dtai.cs.kuleuven.be/).
+MERCS stands for **multi-directional ensembles of classification and regression trees**. It is a novel ML-paradigm under active development at the [DTAI-lab at KU Leuven](https://dtai.cs.kuleuven.be/).
 
 ## Installation
 
@@ -12,11 +12,12 @@ pip install mercs
 
 ## Website
 
-Cf. [https://eliavw.github.io/mercs/](https://eliavw.github.io/mercs/)
+Our (very small) website can be found [here](https://eliavw.github.io/mercs/).
+
 
 ## Tutorials
 
-Cf. the quickstart section of the website, [https://eliavw.github.io/mercs/quickstart](https://eliavw.github.io/mercs/quickstart).
+Cf. the [quickstart section](https://eliavw.github.io/mercs/quickstart) of the website.
 
 ## Code
 
