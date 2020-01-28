@@ -1,6 +1,6 @@
 # MERCS
 
-MERCS stands for **m**ulti-directional **e**nsembles of **c**lassification and **r**egression tree**s**. It is a novel ML-paradigm under active development at the [DTAI-lab at KU Leuven](https://dtai.cs.kuleuven.be/).
+MERCS stands for **multi-directional ensembles of classification and regression trees**. It is a novel ML-paradigm under active development at the [DTAI-lab at KU Leuven](https://dtai.cs.kuleuven.be/).
 
 ## Installation
 
