@@ -1,5 +1,6 @@
 import numpy as np
 from dask import delayed
+from sklearn.preprocessing import normalize
 
 from ..algo.inference_v3 import compute
 from .compose import o, x
@@ -36,15 +37,28 @@ class NewCompositeModel(object):
 
         self.predict = _get_predict(diagram, self.targ_ids)
 
-        self.predict_proba = _get_predict_proba(diagram, self.targ_ids)
-
         if nominal_attributes is not None:
-            nominal_targ_ids = nominal_attributes.intersection(self.targ_ids)
-            self.classes_ = _get_classes_(diagram, nominal_targ_ids)
+            self.nominal_targ_ids = nominal_attributes.intersection(self.targ_ids)
+            self.classes_ = _get_classes_(diagram, self.nominal_targ_ids)
+            self.predict_proba = _get_predict_proba(diagram, self.nominal_targ_ids)
 
         self.score = 1
 
         return
+
+
+    def get_confidences(self, X=None, redo=False, normalize_outputs=True):
+
+        confidences = [np.array([[1.0]]) for t in self.targ_ids]
+        nominal_prb = self.predict_proba(X, redo=redo)
+
+        for targ_id, proba in zip(self.nominal_targ_ids, nominal_prb):
+            targ_idx = self.targ_ids.index(targ_id)
+            confidences[targ_idx] = proba
+
+        if normalize_outputs:
+            confidences = [np.max(normalize(c, norm='l1')) for c in confidences]
+        return confidences
 
 
 def _get_predict(diagram, targ_ids):
