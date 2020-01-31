@@ -166,7 +166,7 @@ def rw(
     m_score,
     q_code,
     m_avl=None,
-    nb_walks=1,
+    nb_walks=5,
     max_steps=4,
     init_threshold=1.0,
     stepsize=0.1,

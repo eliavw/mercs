@@ -242,7 +242,9 @@ def _build_parameters(
     return parameters
 
 
-def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, filter_nan=True, **kwargs):
+def _learn_model(
+    data, desc_ids, targ_ids, learner, out_kind, metric, filter_nan=True, min_nb_samples=10, **kwargs
+):
     """
     Learn a model from the data.
 
@@ -255,30 +257,33 @@ def _learn_model(data, desc_ids, targ_ids, learner, out_kind, metric, filter_nan
 
     i, o = get_i_o(data, desc_ids, targ_ids, filter_nan=filter_nan)
 
-    # Pre-processing
-    if i.ndim == 1:
-        # We always want 2D inputs
-        i = i.reshape(-1, 1)
-
-    multi_target = o.shape[1] != 1
-    if not multi_target:
-        # If output is single variable, we need 1D matrix
-        o = o.ravel()
-
-    if learner in {LGBMC, LGBMR}:
-        categorical_feature = kwargs.pop("categorical_feature")
-        model = learner(**kwargs)
-        model.fit(i, o, categorical_feature=categorical_feature)
+    if i.shape[0] < min_nb_samples:
+        return None
     else:
-        model = learner(**kwargs)
-        model.fit(i, o)
+        # Pre-processing
+        if i.ndim == 1:
+            # We always want 2D inputs
+            i = i.reshape(-1, 1)
 
-    performance = 1.0
+        multi_target = o.shape[1] != 1
+        if not multi_target:
+            # If output is single variable, we need 1D matrix
+            o = o.ravel()
 
-    # Bookkeeping
-    model = CanonicalModel(model, desc_ids, targ_ids, out_kind, performance)
+        if learner in {LGBMC, LGBMR}:
+            categorical_feature = kwargs.pop("categorical_feature")
+            model = learner(**kwargs)
+            model.fit(i, o, categorical_feature=categorical_feature)
+        else:
+            model = learner(**kwargs)
+            model.fit(i, o)
 
-    return model
+        performance = 1.0
+
+        # Bookkeeping
+        model = CanonicalModel(model, desc_ids, targ_ids, out_kind, performance)
+
+        return model
 
 
 # Helpers

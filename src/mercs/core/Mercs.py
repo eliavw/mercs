@@ -68,7 +68,7 @@ from ..utils import (
     DecoratedDecisionTreeClassifier,
     DecoratedDecisionTreeRegressor,
     DecoratedRandomForestClassifier,
-    DecoratedRandomForestRegressor
+    DecoratedRandomForestRegressor,
 )
 from ..visuals import save_diagram, show_diagram
 
@@ -84,7 +84,7 @@ class Mercs(object):
     induction_algorithms = dict(
         base=base_induction_algorithm,
         default=base_induction_algorithm,
-        expand=expand_induction_algorithm
+        expand=expand_induction_algorithm,
     )
 
     classifier_algorithms = dict(
@@ -173,6 +173,19 @@ class Mercs(object):
         random_state=42,
         **kwargs
     ):
+        self.params = dict(
+            selection_algorithm=selection_algorithm,
+            induction_algorithm=induction_algorithm,
+            classifier_algorithm=classifier_algorithm,
+            regressor_algorithm=regressor_algorithm,
+            prediction_algorithm=prediction_algorithm,
+            inference_algorithm=inference_algorithm,
+            imputer_algorithm=imputer_algorithm,
+            evaluation_algorithm=evaluation_algorithm,
+            random_state=random_state,
+        )
+        self.params = {**self.params, **kwargs}
+
         self.random_state = random_state
         self.selection_algorithm = self.selection_algorithms[selection_algorithm]
 
@@ -242,8 +255,13 @@ class Mercs(object):
 
         return
 
-    def fit(self, X, m_codes=None, **kwargs):
+    def fit(self, X, y=None, m_codes=None, **kwargs):
         assert isinstance(X, np.ndarray)
+
+        if y is not None:
+            assert isinstance(y, np.ndarray)
+            X = np.c_[X, y]
+
         tic = default_timer()
 
         self.metadata = self._default_metadata(X)
@@ -268,11 +286,13 @@ class Mercs(object):
             **self.ind_cfg
         )
 
+        self._filter_m_list_m_codes()
+
         self._consistent_datastructures()
 
-        if self.imputer_algorithm == self.imputer_algorithms.get('nan'):
+        if self.imputer_algorithm == self.imputer_algorithms.get("nan"):
             # If you do no have imputers, you cannot use them as a baseline evaluation
-            self.evl_cfg['consider_imputations'] = False
+            self.evl_cfg["consider_imputations"] = False
 
         self.m_score = self.evaluation_algorithm(
             X, self.m_codes, self.m_list, self.i_list, **self.evl_cfg
@@ -353,6 +373,9 @@ class Mercs(object):
 
         return result
 
+    def get_params(self, deep=False):
+        return self.params
+
     # Diagrams
     def _build_q_diagram(self, m_list, m_sel, composition=False):
         if isinstance(m_sel, tuple):
@@ -387,7 +410,6 @@ class Mercs(object):
         return save_diagram(self.q_diagram, fname, kind=kind, fi=fi, ortho=ortho)
 
     # Inference
-
     def _build_q_model(self, X, diagram):
         try:
             self.inference_algorithm(
@@ -473,6 +495,15 @@ class Mercs(object):
 
         q_model = CompositeModel(q_diagram)
         return q_model
+
+    # Filter
+    def _filter_m_list_m_codes(self):
+        
+        fail_m_idxs = [i for i, m in enumerate(self.m_list) if m is None]
+        self.m_codes = np.delete(self.m_codes, fail_m_idxs, axis=0)
+        self.m_list = [m for m in self.m_list if m is not None]
+
+        return
 
     # Graphs
     def _consistent_datastructures(self, binary_scores=False):
