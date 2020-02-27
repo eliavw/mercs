@@ -17,33 +17,33 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from joblib import Parallel, delayed
 from ..utils.decoration import decorate_tree
 
+from sklearn.preprocessing import normalize
+import shap
+
+
 try:
     from xgboost import XGBClassifier as XGBC
     from xgboost import XGBRegressor as XGBR
 except:
     XGBC, XGBR = None, None
-    warnings.warn("xgboost not found, you cannot use this as an underlying learner.")
 
 try:
     from lightgbm import LGBMClassifier as LGBMC
     from lightgbm import LGBMRegressor as LGBMR
 except:
     LGBMC, LGBMR = None, None
-    warnings.warn("lightgbm not found, you cannot use this as an underlying learner.")
 
 try:
     from catboost import CatBoostClassifier as CBC
     from catboost import CatBoostRegressor as CBR
 except:
     CBC, CBR = None, None
-    warnings.warn("catboost not found, you cannot use this as an underlying learner.")
 
 try:
     from wekalearn import RandomForestClassifier as WLC
     from wekalearn import RandomForestRegressor as WLR
 except:
     WLC, WLR = None, None
-    warnings.warn("wekalearn not found, you cannot use this as an underlying learner.")
 
 from ..composition.CanonicalModel import CanonicalModel
 from ..utils import code_to_query, debug_print, get_att, get_i_o
@@ -58,6 +58,7 @@ def base_induction_algorithm(
     classifier_kwargs,
     regressor_kwargs,
     random_state=997,
+    calculation_method_feature_importances="default",
     n_jobs=1,
     verbose=0,
 ):
@@ -118,6 +119,7 @@ def base_induction_algorithm(
         regressor,
         regressor_kwargs,
         random_states,
+        calculation_method_feature_importances,
         data,
     )
 
@@ -208,6 +210,7 @@ def _build_parameters(
     regressor,
     regressor_kwargs,
     random_states,
+    calculation_method_feature_importances,
     data,
 ):
     parameters = []
@@ -230,6 +233,9 @@ def _build_parameters(
             raise ValueError(msg)
 
         kwargs["random_state"] = random_states[idx]
+        kwargs[
+            "calculation_method_feature_importances"
+        ] = calculation_method_feature_importances
 
         kwargs = _add_categorical_features_to_kwargs(
             learner, desc_ids, nominal_attributes, kwargs
@@ -243,7 +249,16 @@ def _build_parameters(
 
 
 def _learn_model(
-    data, desc_ids, targ_ids, learner, out_kind, metric, filter_nan=True, min_nb_samples=10, **kwargs
+    data,
+    desc_ids,
+    targ_ids,
+    learner,
+    out_kind,
+    metric,
+    filter_nan=True,
+    min_nb_samples=10,
+    calculation_method_feature_importances="default",
+    **kwargs
 ):
     """
     Learn a model from the data.
@@ -280,6 +295,9 @@ def _learn_model(
 
         performance = 1.0
 
+        if calculation_method_feature_importances in {"shap"}:
+            model.shap_values_ = _calculate_shap_values(model, i)
+
         # Bookkeeping
         model = CanonicalModel(model, desc_ids, targ_ids, out_kind, performance)
 
@@ -287,6 +305,18 @@ def _learn_model(
 
 
 # Helpers
+def _calculate_shap_values(model, X):
+    shap_values = shap.TreeExplainer(model).shap_values(X)
+    if isinstance(shap_values, list):
+        r = _summarize_shaps(shap_values[0])
+    else:
+         r = _summarize_shaps(shap_values)
+    return r
+
+
+def _summarize_shaps(shap_values):
+    avgs_values = np.mean(np.abs(shap_values), axis=0)
+    return np.squeeze(normalize(avgs_values.reshape(1, -1), norm="l1"))
 
 
 def _add_categorical_features_to_kwargs(learner, desc_ids, nominal_attributes, kwargs):

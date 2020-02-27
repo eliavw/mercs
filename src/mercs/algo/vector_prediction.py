@@ -69,7 +69,7 @@ def mrai(
 
     if m_flt is None:
         warnings.warn("You reached a dead end.")
-        return m_flt
+        return None
     else:
         # Criterion
         c_tgt = criterion(

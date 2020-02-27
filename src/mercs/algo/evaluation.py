@@ -1,7 +1,7 @@
 import numpy as np
 from functools import partial
 from sklearn.preprocessing import maxabs_scale, minmax_scale
-from sklearn.metrics import f1_score, r2_score, mean_squared_error
+from sklearn.metrics import f1_score, r2_score, mean_squared_error, accuracy_score
 from sklearn.model_selection import train_test_split
 from ..utils.inference_tools import _dummy_array
 from ..utils import DESC_ENCODING, TARG_ENCODING, MISS_ENCODING, get_i_o
@@ -32,7 +32,7 @@ def base_evaluation(
 
     if consider_imputations:
         i_score = _imputer_evaluation(X, i_list)
-        m_score = normalize_m_score(
+        m_score = normalize_m_score_relative_to_imputation(
             m_score, i_score, per_attribute_normalization=per_attribute_normalization
         )
     else:
@@ -86,8 +86,8 @@ def _model_evaluation(X, m_list, m_codes):
     m_score = np.zeros(m_codes.shape)
     for m_idx, mod in enumerate(m_list):
         i, o = get_i_o(X, mod.desc_ids, mod.targ_ids, filter_nan=True)
-        
-        #i, o = X[:, mod.desc_ids], X[:, mod.targ_ids]
+
+        # i, o = X[:, mod.desc_ids], X[:, mod.targ_ids]
 
         multi_target = o.shape[1] != 1
         if not multi_target:
@@ -110,7 +110,7 @@ def _imputer_evaluation(X, i_list):
     i_score = np.zeros(len(i_list))
     for i_idx, imp in enumerate(i_list):
         _, o = get_i_o(X, [], [i_idx], filter_nan=True)
-        
+
         # o = X[:, i_idx]
 
         y_true = o
@@ -130,7 +130,8 @@ def _dummy_evaluation(m_codes):
 
 def _select_metric(model):
     if model.out_kind in {"nominal"}:
-        metric = partial(f1_score, average="macro")
+        metric = accuracy_score
+        #metric = partial(f1_score, average="macro")
     else:
         metric = normalized_root_mean_squared_error
         # metric = r2_score

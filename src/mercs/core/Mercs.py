@@ -22,28 +22,24 @@ try:
     from xgboost import XGBRegressor as XGBR
 except:
     XGBC, XGBR = None, None
-    warnings.warn("xgboost not found, you cannot use this as an underlying learner.")
 
 try:
     from lightgbm import LGBMClassifier as LGBMC
     from lightgbm import LGBMRegressor as LGBMR
 except:
     LGBMC, LGBMR = None, None
-    warnings.warn("lightgbm not found, you cannot use this as an underlying learner.")
 
 try:
     from catboost import CatBoostClassifier as CBC
     from catboost import CatBoostRegressor as CBR
 except:
     CBC, CBR = None, None
-    warnings.warn("catboost not found, you cannot use this as an underlying learner.")
 
 try:
     from wekalearn import RandomForestClassifier as WLC
     from wekalearn import RandomForestRegressor as WLR
 except:
     WLC, WLR = None, None
-    warnings.warn("wekalearn not found, you cannot use this as an underlying learner.")
 
 
 from ..algo import (
@@ -77,6 +73,7 @@ class Mercs(object):
     delimiter = "_"
 
     selection_algorithms = dict(
+        default=selection.base_selection_algorithm,
         base=selection.base_selection_algorithm,
         random=selection.random_selection_algorithm,
     )

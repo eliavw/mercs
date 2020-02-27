@@ -9,7 +9,6 @@ try:
     from catboost import CatBoostRegressor as CBR
 except:
     CBC, CBR = None, None
-    warnings.warn("catboost not found, you cannot use this as an underlying learner.")
 
 
 class CanonicalModel(object):
@@ -38,7 +37,10 @@ class CanonicalModel(object):
         self.out_kind = out_kind
         self.score = performance
 
-        self.feature_importances_ = self.model.feature_importances_
+        if hasattr(model, 'shap_values_'):
+            self.feature_importances_ = self.model.shap_values_
+        else:
+            self.feature_importances_ = self.model.feature_importances_
 
         # Canonization of prediction-related stuff
         if self.out_kind in {"nominal", "mix"}:
