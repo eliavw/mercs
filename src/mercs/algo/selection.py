@@ -74,7 +74,7 @@ def _single_iteration_random_selection(
 
     m_codes = _set_targets(m_codes, target_sets)
     m_codes = _set_missing(m_codes, fraction_missing)
-    
+
     return m_codes
 
 

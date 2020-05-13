@@ -15,13 +15,13 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 from ..algo import (
     imputation,
+    induction,
     inference,
     inference_v3,
     selection,
     vector_prediction,
     evaluation,
 )
-from ..algo.induction import base_induction_algorithm, expand_induction_algorithm
 from ..composition import CompositeModel, NewCompositeModel, o
 from ..graph import build_diagram, compose_all, model_to_graph
 from ..utils import (
@@ -75,9 +75,9 @@ class Mercs(object):
     )
 
     induction_algorithms = dict(
-        base=base_induction_algorithm,
-        default=base_induction_algorithm,
-        expand=expand_induction_algorithm,
+        base=induction.base_induction_algorithm,
+        default=induction.base_induction_algorithm,
+        expand=induction.expand_induction_algorithm,
     )
 
     classifier_algorithms = dict(
@@ -164,7 +164,7 @@ class Mercs(object):
             imputer_algorithm="default",
             evaluation_algorithm="default",
             random_state=42,
-            use_mixed_forest=True,
+            use_mixed_forest=False,
             **kwargs
     ):
         # Explicit parameters
@@ -793,10 +793,6 @@ class Mercs(object):
             filtered_nodes.append(n)
         filtered_nodes = list(reversed(filtered_nodes))
         return filtered_nodes
-
-    # SYNTH
-    def autocomplete(self, X, **kwargs):
-        return
 
     # Legacy (TODO: delete when I am sure they can go)
     def predict_old(
