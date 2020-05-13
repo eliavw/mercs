@@ -138,6 +138,11 @@ class Mercs(object):
         dummy=evaluation.dummy_evaluation,
     )
 
+    mixed_algorithms = dict(
+        morfist=MixedRandomForest,
+        default=MixedRandomForest,
+    )
+
     # Used in parse kwargs to identify parameters. If this identification goes wrong, you are sending settings
     # somewhere you do not want them to be. So, this is a tricky part, and moreover hardcoded. In other words:
     # this is risky terrain, and should probably be done differently in the future.
@@ -163,8 +168,8 @@ class Mercs(object):
             inference_algorithm="own",
             imputer_algorithm="default",
             evaluation_algorithm="default",
+            mixed_algorithm=None,
             random_state=42,
-            use_mixed_forest=False,
             **kwargs
     ):
         # Explicit parameters
@@ -177,8 +182,8 @@ class Mercs(object):
             inference_algorithm=inference_algorithm,
             imputer_algorithm=imputer_algorithm,
             evaluation_algorithm=evaluation_algorithm,
-            random_state=random_state,
-            use_mixed_forest=use_mixed_forest
+            mixed_algorithm=mixed_algorithm,
+            random_state=random_state
         )
         # For some reason, some parameters are expected to be passed as kwargs, so we aggregate them here with the
         # explicitly-passed parameters
@@ -199,6 +204,7 @@ class Mercs(object):
         self.induction_algorithm = self.induction_algorithms[induction_algorithm]  # For now, we only have one.
         self.imputer_algorithm = self.imputer_algorithms[imputer_algorithm]
         self.evaluation_algorithm = self.evaluation_algorithms[evaluation_algorithm]
+        self.mixed_algorithm = self.mixed_algorithms[mixed_algorithm]
 
         # Global variables initialization
         self.m_codes = np.array([])
@@ -225,6 +231,9 @@ class Mercs(object):
         self.c_sel = []
         self.c_diagram = []
 
+        self.metadata = dict()
+        self.model_data = dict()
+
         # Configurations for each algorithm
         self.imp_cfg = self._default_config(self.imputer_algorithm)
         self.ind_cfg = self._default_config(self.induction_algorithm)
@@ -246,17 +255,16 @@ class Mercs(object):
         )
         # Update config based on random_state and kwargs
         self._update_config(random_state=random_state, **kwargs)
-        self.metadata = dict()
-        self.model_data = dict()
         self._extra_checks_on_config()
 
     def fit(self, X, y=None, m_codes=None, **kwargs):
         assert isinstance(X, np.ndarray)
 
+        # If labels are provided, they are added to the X data as a new column at the end
+        # MERCS does not care about labels and will treat them as a new variable
         if y is not None:
             assert isinstance(y, np.ndarray)
             X = np.c_[X, y]
-
         tic = default_timer()
 
         self.metadata = self._default_metadata(X)
@@ -296,7 +304,6 @@ class Mercs(object):
         toc = default_timer()
         self.model_data["ind_time"] = toc - tic
         self.metadata["n_component_models"] = len(self.m_codes)
-        return
 
     def predict(
             self,
@@ -493,22 +500,17 @@ class Mercs(object):
         self.m_codes = np.delete(self.m_codes, fail_m_idxs, axis=0)
         self.m_list = [m for m in self.m_list if m is not None]
 
-        return
-
     # Graphs
     def _consistent_data_structures(self):
         self._update_m_codes()
         self._update_m_fimps()
-        return
 
     def _expand_m_list(self):
         self.m_list = list(itertools.chain.from_iterable(self.m_list))
-        return
 
     def _add_model(self, model):
         self.m_list.append(model)
         self._consistent_data_structures()
-        return
 
     def _update_m_codes(self):
         self.m_codes = np.array(
@@ -521,7 +523,6 @@ class Mercs(object):
                 for model in self.m_list
             ]
         )
-        return
 
     def _update_m_fimps(self):
 
@@ -532,12 +533,9 @@ class Mercs(object):
 
         self.m_fimps = init
 
-        return
-
     def _update_m_score(self, binary_scores=False):
         if binary_scores:
             self.m_score = (self.m_codes == TARG_ENCODING).astype(float)
-        return
 
     # Imputer
     def _add_imputer_function(self, g):
@@ -551,8 +549,6 @@ class Mercs(object):
                 f_3 = np.ravel  # Return a vector, not array
 
                 g.nodes[n]["function"] = o(f_3, o(f_2, f_1))
-
-        return
 
     # Add ids
     @staticmethod
@@ -600,8 +596,6 @@ class Mercs(object):
                 self.metadata, kind="metadata", numeric_attributes=numeric
             )
 
-        return
-
     # Configuration
     def _reconfig_prediction(self, prediction_algorithm="mi", **kwargs):
         self.prediction_algorithm = self.prediction_algorithms[prediction_algorithm]
@@ -610,8 +604,6 @@ class Mercs(object):
         self.configuration["prediction"] = self.prd_cfg
         self._update_config(**kwargs)
 
-        return
-
     def _reconfig_inference(self, inference_algorithm="own", **kwargs):
         self.inference_algorithm = self.inference_algorithms[inference_algorithm]
 
@@ -619,7 +611,6 @@ class Mercs(object):
 
         self.configuration["inference"] = self.inf_cfg
         self._update_config(**kwargs)
-        return
 
     @staticmethod
     def _default_config(method):
@@ -636,12 +627,9 @@ class Mercs(object):
         for kind in self.configuration:
             self._update_dictionary(self.configuration[kind], kind=kind, **kwargs)
 
-        return
-
     def _extra_checks_on_config(self):
 
         self._check_xgb_single_target()
-        return
 
     def _check_xgb_single_target(self):
 
@@ -670,8 +658,6 @@ class Mercs(object):
                 warnings.warn(msg)
                 self.configuration["selection"]["nb_targets"] = 1
 
-            return
-
     def _parse_kwargs(self, kind="selection", **kwargs):
 
         prefixes = [e + self.delimiter for e in self.configuration_prefixes[kind]]
@@ -699,7 +685,6 @@ class Mercs(object):
 
             for k in overlap:
                 dictionary[k] = kwargs[parameter_map[k]]
-        return
 
     # Helpers
     def _filter_X(self, X):
@@ -844,11 +829,7 @@ class Mercs(object):
 
     def _update_g_list(self):
         types = self._get_types(self.metadata)
-        self.g_list = [
-            model_to_graph(m, types=types, idx=idx) for idx, m in enumerate(self.m_list)
-        ]
-        return
+        self.g_list = [model_to_graph(m, types=types, idx=idx) for idx, m in enumerate(self.m_list)]
 
     def _update_t_codes(self):
         self.t_codes = (self.m_codes == TARG_ENCODING).astype(int)
-        return
