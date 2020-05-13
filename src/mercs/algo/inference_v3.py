@@ -1,12 +1,7 @@
-from functools import partial
-
-import networkx as nx
 import numpy as np
 
-from ..composition import o
 from ..utils.inference_tools import (
     _dummy_array,
-    _map_classes,
     _pad_proba,
     _select_nominal,
     _select_numeric,

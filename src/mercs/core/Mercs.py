@@ -1,12 +1,9 @@
+import itertools
 import warnings
 from inspect import signature
 from timeit import default_timer
 
-import dask
-import itertools
 import numpy as np
-
-from dask import delayed
 from networkx import NetworkXUnfeasible, find_cycle, topological_sort
 from sklearn.ensemble import (
     RandomForestClassifier,
@@ -14,8 +11,28 @@ from sklearn.ensemble import (
     ExtraTreesClassifier,
     ExtraTreesRegressor,
 )
-from sklearn.impute import SimpleImputer
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+
+from ..algo import (
+    imputation,
+    inference,
+    inference_v3,
+    selection,
+    vector_prediction,
+    evaluation,
+)
+from ..algo.induction import base_induction_algorithm, expand_induction_algorithm
+from ..composition import CompositeModel, NewCompositeModel, o
+from ..graph import build_diagram, compose_all, model_to_graph
+from ..utils import (
+    TARG_ENCODING,
+    code_to_query,
+    query_to_code,
+    DecoratedDecisionTreeClassifier,
+    DecoratedDecisionTreeRegressor,
+    DecoratedRandomForestClassifier
+)
+from ..visuals import save_diagram, show_diagram
 
 try:
     from xgboost import XGBClassifier as XGBC
@@ -35,38 +52,17 @@ try:
 except:
     CBC, CBR = None, None
 
+# FIXME: what is this package?
 try:
     from wekalearn import RandomForestClassifier as WLC
     from wekalearn import RandomForestRegressor as WLR
 except:
     WLC, WLR = None, None
 
-
-from ..algo import (
-    imputation,
-    inference,
-    inference_v3,
-    new_inference,
-    new_prediction,
-    selection,
-    vector_prediction,
-    evaluation,
-)
-from ..algo.induction import base_induction_algorithm, expand_induction_algorithm
-from ..composition import CompositeModel, NewCompositeModel, o, x
-from ..graph import build_diagram, compose_all, get_targ, model_to_graph
-from ..utils import (
-    DESC_ENCODING,
-    MISS_ENCODING,
-    TARG_ENCODING,
-    code_to_query,
-    query_to_code,
-    DecoratedDecisionTreeClassifier,
-    DecoratedDecisionTreeRegressor,
-    DecoratedRandomForestClassifier,
-    DecoratedRandomForestRegressor,
-)
-from ..visuals import save_diagram, show_diagram
+try:
+    from morfist import MixedRandomForest
+except:
+    MRF = None
 
 
 class Mercs(object):
@@ -158,18 +154,20 @@ class Mercs(object):
     )
 
     def __init__(
-        self,
-        selection_algorithm="base",
-        induction_algorithm="base",
-        classifier_algorithm="DT",
-        regressor_algorithm="DT",
-        prediction_algorithm="mi",
-        inference_algorithm="own",
-        imputer_algorithm="default",
-        evaluation_algorithm="default",
-        random_state=42,
-        **kwargs
+            self,
+            selection_algorithm="base",
+            induction_algorithm="base",
+            classifier_algorithm="DT",
+            regressor_algorithm="DT",
+            prediction_algorithm="mi",
+            inference_algorithm="own",
+            imputer_algorithm="default",
+            evaluation_algorithm="default",
+            random_state=42,
+            use_mixed_forest=True,
+            **kwargs
     ):
+        # Explicit parameters
         self.params = dict(
             selection_algorithm=selection_algorithm,
             induction_algorithm=induction_algorithm,
@@ -180,29 +178,29 @@ class Mercs(object):
             imputer_algorithm=imputer_algorithm,
             evaluation_algorithm=evaluation_algorithm,
             random_state=random_state,
+            use_mixed_forest=use_mixed_forest
         )
+        # For some reason, some parameters are expected to be passed as kwargs, so we aggregate them here with the
+        # explicitly-passed parameters
         self.params = {**self.params, **kwargs}
-
         self.random_state = random_state
+        # Parse some parameters from the list of possible values
+        #   N.b.: For some parameters, first try to look up the key.
+        #   If the key is not found, we assume the algorithm itself was passed.
         self.selection_algorithm = self.selection_algorithms[selection_algorithm]
-
-        # N.b.: First try to look up the key. If the key is not found, we assume the algorithm itself was passed.
         self.classifier_algorithm = self.classifier_algorithms.get(
             classifier_algorithm, classifier_algorithm
         )
         self.regressor_algorithm = self.regressor_algorithms.get(
             regressor_algorithm, regressor_algorithm
         )
-
         self.prediction_algorithm = self.prediction_algorithms[prediction_algorithm]
         self.inference_algorithm = self.inference_algorithms[inference_algorithm]
-        self.induction_algorithm = self.induction_algorithms[
-            induction_algorithm
-        ]  # For now, we only have one.
+        self.induction_algorithm = self.induction_algorithms[induction_algorithm]  # For now, we only have one.
         self.imputer_algorithm = self.imputer_algorithms[imputer_algorithm]
         self.evaluation_algorithm = self.evaluation_algorithms[evaluation_algorithm]
 
-        # Data-structures
+        # Global variables initialization
         self.m_codes = np.array([])
         self.m_list = []
         self.c_list = []
@@ -222,8 +220,12 @@ class Mercs(object):
         self.q_diagram = None
         self.q_compose = None
         self.q_methods = []
+        self.q_model = None
 
-        # Configurations
+        self.c_sel = []
+        self.c_diagram = []
+
+        # Configurations for each algorithm
         self.imp_cfg = self._default_config(self.imputer_algorithm)
         self.ind_cfg = self._default_config(self.induction_algorithm)
         self.sel_cfg = self._default_config(self.selection_algorithm)
@@ -232,7 +234,7 @@ class Mercs(object):
         self.prd_cfg = self._default_config(self.prediction_algorithm)
         self.inf_cfg = self._default_config(self.inference_algorithm)
         self.evl_cfg = self._default_config(self.evaluation_algorithm)
-
+        # Aggregate all configurations
         self.configuration = dict(
             imputation=self.imp_cfg,
             induction=self.ind_cfg,
@@ -241,16 +243,12 @@ class Mercs(object):
             regression=self.rgr_cfg,
             prediction=self.prd_cfg,
             inference=self.inf_cfg,
-        )  # Collect all configs in one
-
+        )
+        # Update config based on random_state and kwargs
         self._update_config(random_state=random_state, **kwargs)
-
         self.metadata = dict()
         self.model_data = dict()
-
         self._extra_checks_on_config()
-
-        return
 
     def fit(self, X, y=None, m_codes=None, **kwargs):
         assert isinstance(X, np.ndarray)
@@ -285,7 +283,7 @@ class Mercs(object):
 
         self._filter_m_list_m_codes()
 
-        self._consistent_datastructures()
+        self._consistent_data_structures()
 
         if self.imputer_algorithm == self.imputer_algorithms.get("nan"):
             # If you do no have imputers, you cannot use them as a baseline evaluation
@@ -301,12 +299,12 @@ class Mercs(object):
         return
 
     def predict(
-        self,
-        X,
-        q_code=None,
-        inference_algorithm=None,
-        prediction_algorithm=None,
-        **kwargs
+            self,
+            X,
+            q_code=None,
+            inference_algorithm=None,
+            prediction_algorithm=None,
+            **kwargs
     ):
         # Update configuration if necessary
         if q_code is None:
@@ -328,24 +326,20 @@ class Mercs(object):
 
         # Make query-diagram
         tic_prediction = default_timer()
-        self.m_sel = self.prediction_algorithm(
+        m_sel = self.prediction_algorithm(
             self.m_codes, self.m_fimps, self.m_score, q_code=self.q_code, **self.prd_cfg
         )
         toc_prediction = default_timer()
 
         tic_diagram = default_timer()
-        self.q_diagram = self._build_q_diagram(self.m_list, self.m_sel)
+        self.q_diagram = self._build_q_diagram(self.m_list, m_sel)
         toc_diagram = default_timer()
 
-        tic_infalgo = default_timer()
+        tic_inference_algo = default_timer()
         if isinstance(self.q_diagram, tuple):
-            self.q_diagrams = self.q_diagram
+            q_diagrams = self.q_diagram
 
-            # for d in self.q_diagrams:
-            #    print(d.nodes)
-            #   self.c_list.append(self._build_q_model(X, d))
-
-            self.c_list = [self._build_q_model(X, d) for d in self.q_diagrams]
+            self.c_list = [self._build_q_model(X, d) for d in q_diagrams]
             self.c_sel = list(range(len(self.c_list)))
             self.c_diagram = self._build_q_diagram(
                 self.c_list, self.c_sel, composition=True
@@ -364,13 +358,13 @@ class Mercs(object):
 
         self.model_data["prd_time"] = toc_prediction - tic_prediction
         self.model_data["dia_time"] = toc_diagram - tic_diagram
-        self.model_data["infalgo_time"] = toc_infalgo - tic_infalgo
+        self.model_data["infalgo_time"] = toc_infalgo - tic_inference_algo
         self.model_data["dsk_time"] = toc_dask - tic_dask
         self.model_data["inf_time"] = toc_dask - tic_prediction
 
         return result
 
-    def get_params(self, deep=False):
+    def get_params(self):
         return self.params
 
     # Diagrams
@@ -438,7 +432,7 @@ class Mercs(object):
         )
         return q_model
 
-    def _merge_q_models(self, q_models):
+    def _merge_q_models(self):
         q_diagram = build_diagram(self.c_list, self.c_sel, self.q_code, prune=True)
         return q_diagram
 
@@ -495,7 +489,6 @@ class Mercs(object):
 
     # Filter
     def _filter_m_list_m_codes(self):
-        
         fail_m_idxs = [i for i, m in enumerate(self.m_list) if m is None]
         self.m_codes = np.delete(self.m_codes, fail_m_idxs, axis=0)
         self.m_list = [m for m in self.m_list if m is not None]
@@ -503,7 +496,7 @@ class Mercs(object):
         return
 
     # Graphs
-    def _consistent_datastructures(self, binary_scores=False):
+    def _consistent_data_structures(self):
         self._update_m_codes()
         self._update_m_fimps()
         return
@@ -512,9 +505,9 @@ class Mercs(object):
         self.m_list = list(itertools.chain.from_iterable(self.m_list))
         return
 
-    def _add_model(self, model, binary_scores=False):
+    def _add_model(self, model):
         self.m_list.append(model)
-        self._consistent_datastructures(binary_scores=binary_scores)
+        self._consistent_data_structures()
         return
 
     def _update_m_codes(self):
@@ -658,8 +651,8 @@ class Mercs(object):
             return None
         else:
             if (
-                self.classifier_algorithm is self.classifier_algorithms["XGB"]
-                or self.regressor_algorithm is self.regressor_algorithms["XGB"]
+                    self.classifier_algorithm is self.classifier_algorithms["XGB"]
+                    or self.regressor_algorithm is self.regressor_algorithms["XGB"]
             ):
                 xgb = True
             else:
@@ -715,7 +708,9 @@ class Mercs(object):
             indices = self._overlapping_indices(
                 self.q_desc_ids, self.q_compose.desc_ids
             )
-        return X[:, indices]
+            return X[:, indices]
+        else:
+            return X
 
     @staticmethod
     def _dummy_array(X):
@@ -800,12 +795,12 @@ class Mercs(object):
         return filtered_nodes
 
     # SYNTH
-    def autocomplete(X, **kwargs):
+    def autocomplete(self, X, **kwargs):
         return
 
-    # Legacy (delete when I am sure they can go)
+    # Legacy (TODO: delete when I am sure they can go)
     def predict_old(
-        self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs
+            self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs
     ):
         # Update configuration if necessary
         if q_code is None:
