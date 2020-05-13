@@ -60,8 +60,6 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
         else:
             raise ValueError("Did not recognize node kind of {}".format(n))
 
-    return
-
 
 # Specific Nodes
 def input_data_node(g, node, g_desc_ids):
@@ -73,11 +71,8 @@ def input_data_node(g, node, g_desc_ids):
     g.nodes[node]["inputs"] = g_desc_ids.index(node[1])
     g.nodes[node]["compute"] = f
 
-    return
-
 
 def imputation_node(g, node, i_list, nb_rows):
-
     # Build function
     def f(n):
         return i_list[node[1]].transform(_dummy_array(n)).ravel()
@@ -85,22 +80,7 @@ def imputation_node(g, node, i_list, nb_rows):
     # New
     g.nodes[node]["inputs"] = nb_rows
     g.nodes[node]["compute"] = f
-    return
 
-"""
-def single_data_node(g, node, m_list, c_list):
-    # New
-    parents = _numeric_parents(g, m_list, c_list, node)
-
-    def f(parents):
-        collector = _numeric_inputs(g, parents)
-        return collector.pop()
-
-    g.nodes[node]["inputs"] = parents
-    g.nodes[node]["compute"] = f
-
-    return
-"""
 
 def numeric_data_node(g, node, m_list, c_list):
     parents = _numeric_parents(g, m_list, c_list, node)
@@ -111,7 +91,6 @@ def numeric_data_node(g, node, m_list, c_list):
 
     g.nodes[node]["inputs"] = parents
     g.nodes[node]["compute"] = f
-    return
 
 
 def nominal_data_node(g, node, m_list, c_list):
@@ -135,11 +114,8 @@ def nominal_data_node(g, node, m_list, c_list):
     g.nodes[node]["compute_proba"] = F
     g.nodes[node]["compute"] = F2
 
-    return
-
 
 def model_node(g, node, m_list):
-
     # New
     parents = _model_parents(g, node)
 
@@ -151,14 +127,11 @@ def model_node(g, node, m_list):
     g.nodes[node]["compute"] = f
 
     if hasattr(m_list[node[1]], "predict_proba"):
-
         def f2(parents):
             X = _model_inputs(g, parents)
             return m_list[node[1]].predict_proba(X)
 
         g.nodes[node]["compute_proba"] = f2
-
-    return
 
 
 def composite_node(g, node, c_list):
@@ -167,7 +140,6 @@ def composite_node(g, node, c_list):
 
 # Helpers - Function
 def compute(g, node, proba=False):
-
     result = "result"
     compute = "compute"
 
@@ -207,7 +179,6 @@ def _model_inputs(g, parents):
 
 
 def _numeric_parents(g, m_list, c_list, node):
-
     parents = [
         (rel_idx(p_idx, node[1], k, m_list, c_list), (k, p_idx))
         for k, p_idx in g.predecessors(node)
@@ -253,4 +224,3 @@ def classes(p_idx, r_idx, k, m_list, c_list):
         return m_list[p_idx].classes_[r_idx]
     elif k == "C":
         return c_list[p_idx].classes_[r_idx]
-

@@ -1,15 +1,12 @@
 import numpy as np
-from functools import partial
 from sklearn.preprocessing import maxabs_scale, minmax_scale
-from sklearn.metrics import f1_score, r2_score, mean_squared_error, accuracy_score
+from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.model_selection import train_test_split
 from ..utils.inference_tools import _dummy_array
-from ..utils import DESC_ENCODING, TARG_ENCODING, MISS_ENCODING, get_i_o
+from ..utils import TARG_ENCODING, get_i_o
 
 
-def dummy_evaluation(
-    data, m_codes, m_list, i_list, random_state=42, test_size=0.2, **kwargs
-):
+def dummy_evaluation(m_codes):
     return _dummy_evaluation(m_codes)
 
 
@@ -21,8 +18,7 @@ def base_evaluation(
     random_state=42,
     test_size=0.2,
     per_attribute_normalization=False,
-    consider_imputations=False,
-    **kwargs
+    consider_imputations=False
 ):
 
     # Data
@@ -87,8 +83,6 @@ def _model_evaluation(X, m_list, m_codes):
     for m_idx, mod in enumerate(m_list):
         i, o = get_i_o(X, mod.desc_ids, mod.targ_ids, filter_nan=True)
 
-        # i, o = X[:, mod.desc_ids], X[:, mod.targ_ids]
-
         multi_target = o.shape[1] != 1
         if not multi_target:
             # If output is single variable, we need 1D matrix
@@ -100,8 +94,6 @@ def _model_evaluation(X, m_list, m_codes):
         metric = _select_metric(mod)
         mod.score = _calc_performance(y_true, y_pred, metric, multi_target)
         m_score[m_idx, mod.targ_ids] = mod.score
-
-        # m_score[m_idx, mod.targ_ids] = (mod.score - i_score[mod.targ_ids])/mod.score
     return m_score
 
 
@@ -110,8 +102,6 @@ def _imputer_evaluation(X, i_list):
     i_score = np.zeros(len(i_list))
     for i_idx, imp in enumerate(i_list):
         _, o = get_i_o(X, [], [i_idx], filter_nan=True)
-
-        # o = X[:, i_idx]
 
         y_true = o
         y_pred = imp.transform(_dummy_array(len(o))).ravel()
@@ -131,10 +121,8 @@ def _dummy_evaluation(m_codes):
 def _select_metric(model):
     if model.out_kind in {"nominal"}:
         metric = accuracy_score
-        #metric = partial(f1_score, average="macro")
     else:
         metric = normalized_root_mean_squared_error
-        # metric = r2_score
     return metric
 
 

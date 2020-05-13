@@ -1,25 +1,12 @@
-import warnings
-from functools import partial, wraps
 import itertools
+import warnings
+from functools import partial
+
 import numpy as np
-import pandas as pd
-
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    RandomForestRegressor,
-    ExtraTreesClassifier,
-    ExtraTreesRegressor,
-)
-from sklearn.metrics import f1_score, r2_score
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-
-from joblib import Parallel, delayed
-from ..utils.decoration import decorate_tree
-
-from sklearn.preprocessing import normalize
 import shap
-
+from joblib import Parallel, delayed
+from sklearn.metrics import f1_score, r2_score
+from sklearn.preprocessing import normalize
 
 try:
     from xgboost import XGBClassifier as XGBC
@@ -46,21 +33,21 @@ except:
     WLC, WLR = None, None
 
 from ..composition.CanonicalModel import CanonicalModel
-from ..utils import code_to_query, debug_print, get_att, get_i_o
+from ..utils import code_to_query, get_i_o
 
 
 def base_induction_algorithm(
-    data,
-    m_codes,
-    metadata,
-    classifier,
-    regressor,
-    classifier_kwargs,
-    regressor_kwargs,
-    random_state=997,
-    calculation_method_feature_importances="default",
-    n_jobs=1,
-    verbose=0,
+        data,
+        m_codes,
+        metadata,
+        classifier,
+        regressor,
+        classifier_kwargs,
+        regressor_kwargs,
+        random_state=997,
+        calculation_method_feature_importances="default",
+        n_jobs=1,
+        verbose=0,
 ):
     """Basic induction algorithm. Models according to the m_codes it receives.
     
@@ -130,16 +117,16 @@ def base_induction_algorithm(
 
 
 def expand_induction_algorithm(
-    data,
-    m_codes,
-    metadata,
-    classifier,
-    regressor,
-    classifier_kwargs,
-    regressor_kwargs,
-    random_state=997,
-    n_jobs=1,
-    verbose=0,
+        data,
+        m_codes,
+        metadata,
+        classifier,
+        regressor,
+        classifier_kwargs,
+        regressor_kwargs,
+        random_state=997,
+        n_jobs=1,
+        verbose=0,
 ):
     """Basic induction algorithm. Models according to the m_codes it receives.
     
@@ -202,16 +189,16 @@ def _build_models(parameters, n_jobs=1, verbose=0):
 
 
 def _build_parameters(
-    ids,
-    nominal_attributes,
-    classifier,
-    classifier_kwargs,
-    numeric_attributes,
-    regressor,
-    regressor_kwargs,
-    random_states,
-    calculation_method_feature_importances,
-    data,
+        ids,
+        nominal_attributes,
+        classifier,
+        classifier_kwargs,
+        numeric_attributes,
+        regressor,
+        regressor_kwargs,
+        random_states,
+        calculation_method_feature_importances,
+        data,
 ):
     parameters = []
     for idx, (desc_ids, targ_ids) in enumerate(ids):
@@ -249,16 +236,15 @@ def _build_parameters(
 
 
 def _learn_model(
-    data,
-    desc_ids,
-    targ_ids,
-    learner,
-    out_kind,
-    metric,
-    filter_nan=True,
-    min_nb_samples=10,
-    calculation_method_feature_importances="default",
-    **kwargs
+        data,
+        desc_ids,
+        targ_ids,
+        learner,
+        out_kind,
+        filter_nan=True,
+        min_nb_samples=10,
+        calculation_method_feature_importances="default",
+        **kwargs
 ):
     """
     Learn a model from the data.
@@ -310,7 +296,7 @@ def _calculate_shap_values(model, X):
     if isinstance(shap_values, list):
         r = _summarize_shaps(shap_values[0])
     else:
-         r = _summarize_shaps(shap_values)
+        r = _summarize_shaps(shap_values)
     return r
 
 
@@ -333,10 +319,10 @@ def _add_categorical_features_to_kwargs(learner, desc_ids, nominal_attributes, k
     return kwargs
 
 
-def _score_model(model, metric, y_test, y_pred, multi_target):
+def _score_model(metric, y_test, y_pred, multi_target):
     try:
         performance = _calc_performance(y_test, y_pred, metric, multi_target)
-    except ValueError as e:
+    except ValueError:
         mean = np.nanmean(y_pred)
         if not np.isfinite(mean):
             warnings.warn(

@@ -1,9 +1,8 @@
 import numpy as np
 from dask import delayed
 
-from .compose import o, x
-from ..graph.network import get_ids, node_label, get_nodes
-
+from .compose import x
+from ..graph.network import get_ids, node_label
 from ..utils import debug_print
 
 VERBOSITY = 0
@@ -38,7 +37,6 @@ class CompositeModel(object):
         debug_print(self.out_kind)
 
         if self.out_kind in {"nominal", "mix"}:
-
             self.nominal_targ_ids = self.extract_nominal_targ_ids(
                 diagram, self.targ_ids
             )
@@ -83,7 +81,6 @@ class CompositeModel(object):
 
 
 def _get_classes(diagram, nominal_targ_ids):
-
     nominal_targ_ids.sort()
 
     # The prob and vote nodes have complete information on the classes
@@ -98,7 +95,6 @@ def _get_classes(diagram, nominal_targ_ids):
 
 
 def _get_predict_proba(diagram, nominal_targ_ids):
-
     nominal_targ_ids.sort()
     rel_nodes = [node_label(t, kind="prob") for t in nominal_targ_ids]
     tgt_methods = [diagram.nodes[n]["dask"] for n in rel_nodes]

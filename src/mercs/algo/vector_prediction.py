@@ -1,7 +1,7 @@
-import numpy as np
 import warnings
 
-from sklearn.preprocessing import minmax_scale, normalize
+import numpy as np
+from sklearn.preprocessing import normalize
 
 from ..utils import code_to_query, get_att_2d, TARG_ENCODING
 
@@ -10,14 +10,14 @@ EPSILON = 0.00001
 
 # Strategies
 def mi(
-    m_codes,
-    m_fimps,
-    m_score,
-    q_code,
-    a_src=None,
-    a_tgt=None,
-    m_avl=None,
-    random_state=997,
+        m_codes,
+        m_fimps,
+        m_score,
+        q_code,
+        a_src=None,
+        a_tgt=None,
+        m_avl=None,
+        random_state=997,
 ):
     # Init
     m_sel = []
@@ -35,19 +35,19 @@ def mi(
 
 
 def mrai(
-    m_codes,
-    m_fimps,
-    m_score,
-    q_code,
-    a_src=None,
-    a_tgt=None,
-    m_avl=None,
-    init_threshold=1.0,
-    stepsize=0.1,
-    any_target=False,
-    picking_function="greedy",
-    thresholds=None,
-    random_state=997,
+        m_codes,
+        m_fimps,
+        m_score,
+        q_code,
+        a_src=None,
+        a_tgt=None,
+        m_avl=None,
+        init_threshold=1.0,
+        stepsize=0.1,
+        any_target=False,
+        picking_function="greedy",
+        thresholds=None,
+        random_state=997,
 ):
     # Init
     m_sel = []
@@ -98,16 +98,16 @@ def mrai(
 
 
 def it(
-    m_codes,
-    m_fimps,
-    m_score,
-    q_code,
-    m_avl=None,
-    max_steps=4,
-    init_threshold=1.0,
-    stepsize=0.1,
-    picking_function="greedy",
-    random_state=997,
+        m_codes,
+        m_fimps,
+        m_score,
+        q_code,
+        m_avl=None,
+        max_steps=4,
+        init_threshold=1.0,
+        stepsize=0.1,
+        picking_function="greedy",
+        random_state=997,
 ):
     m_sel = []
     m_avl = _init_m_avl(m_codes, m_avl=m_avl)
@@ -161,20 +161,19 @@ def it(
 
 
 def rw(
-    m_codes,
-    m_fimps,
-    m_score,
-    q_code,
-    m_avl=None,
-    nb_walks=5,
-    max_steps=4,
-    init_threshold=1.0,
-    stepsize=0.1,
-    straight=True,
-    picking_function="stochastic",
-    random_state=997,
+        m_codes,
+        m_fimps,
+        m_score,
+        q_code,
+        m_avl=None,
+        nb_walks=5,
+        max_steps=4,
+        init_threshold=1.0,
+        stepsize=0.1,
+        straight=True,
+        picking_function="stochastic",
+        random_state=997,
 ):
-
     random_walks = [
         walk(
             m_codes,
@@ -196,17 +195,17 @@ def rw(
 
 
 def walk(
-    m_codes,
-    m_fimps,
-    m_score,
-    q_code,
-    m_avl=None,
-    max_steps=4,
-    init_threshold=1.0,
-    stepsize=0.1,
-    straight=True,
-    picking_function="stochastic",
-    random_state=997,
+        m_codes,
+        m_fimps,
+        m_score,
+        q_code,
+        m_avl=None,
+        max_steps=4,
+        init_threshold=1.0,
+        stepsize=0.1,
+        straight=True,
+        picking_function="stochastic",
+        random_state=997,
 ):
     m_sel = []
     m_avl = _init_m_avl(m_codes, m_avl=m_avl)
@@ -284,7 +283,6 @@ def _all_pick(criterion, **kwargs):
 
 
 def _greedy_pick(criterion, thresholds=None, **kwargs):
-
     for thr in thresholds:
         m_sel = np.where(criterion >= thr)[0]
 
@@ -371,7 +369,6 @@ def _criteria_to_distribution(criteria, epsilon=EPSILON):
 
 # Inits
 def _init_thresholds(init_threshold, stepsize, thresholds=None, tolerance=EPSILON):
-
     if thresholds is None:
         thresholds = np.arange(init_threshold, -1 - stepsize, -stepsize)
 
@@ -394,4 +391,3 @@ def _init_a_src_a_tgt(q_code=None, a_src=None, a_tgt=None):
         return a_src, a_tgt
     else:
         return a_src, a_tgt
-

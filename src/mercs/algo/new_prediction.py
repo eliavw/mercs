@@ -39,7 +39,6 @@ def mi(g_list, q_code, fi, t_codes, random_state=997):
 
 
 def mi_old(g_list, q_code, fi, t_codes, random_state=997):
-
     # Init
     mod_ids = [g.graph["id"] for g in g_list]
 
@@ -60,21 +59,20 @@ def mi_old(g_list, q_code, fi, t_codes, random_state=997):
 
 
 def mrai(
-    g_list,
-    q_code,
-    fi,
-    t_codes,
-    init_threshold=1.0,
-    stepsize=0.1,
-    greedy=True,
-    stochastic=False,
-    any_target=False,
-    imputation_nodes=True,
-    merge_nodes=True,
-    return_avl_g=False,
-    random_state=997,
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        init_threshold=1.0,
+        stepsize=0.1,
+        greedy=True,
+        stochastic=False,
+        any_target=False,
+        imputation_nodes=True,
+        merge_nodes=True,
+        return_avl_g=False,
+        random_state=997,
 ):
-
     # Init
     thresholds = _init_thresholds(init_threshold, stepsize)
 
@@ -86,10 +84,10 @@ def mrai(
     criteria = _mod_criteria(mod_ids, avl_att, fi)
 
     criteria = (
-        criteria * avl_mod
+            criteria * avl_mod
     )  # All the criteria of unavailable models are set to zero
 
-    criteria[np.where(avl_mod<=0)[0], :] = -1  # Unavailable models are set to -1, available ones keep their score.
+    criteria[np.where(avl_mod <= 0)[0], :] = -1  # Unavailable models are set to -1, available ones keep their score.
 
     # Pick
     for c_idx in range(criteria.shape[1]):
@@ -125,14 +123,14 @@ def mrai(
 
 
 def it(
-    g_list,
-    q_code,
-    fi,
-    t_codes,
-    max_steps=4,
-    init_threshold=1.0,
-    stepsize=0.1,
-    random_state=997,
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        max_steps=4,
+        init_threshold=1.0,
+        stepsize=0.1,
+        random_state=997,
 ):
     # Init
     stochastic = False
@@ -195,17 +193,16 @@ def it(
 
 
 def rw(
-    g_list,
-    q_code,
-    fi,
-    t_codes,
-    max_steps=4,
-    nb_walks=1,
-    init_threshold=1.0,
-    stepsize=0.1,
-    random_state=997,
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        max_steps=4,
+        nb_walks=1,
+        init_threshold=1.0,
+        stepsize=0.1,
+        random_state=997,
 ):
-
     q_diagrams = [
         walk(
             g_list,
@@ -224,16 +221,15 @@ def rw(
 
 
 def walk(
-    g_list,
-    q_code,
-    fi,
-    t_codes,
-    max_steps=4,
-    init_threshold=1.0,
-    stepsize=0.1,
-    random_state=997,
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        max_steps=4,
+        init_threshold=1.0,
+        stepsize=0.1,
+        random_state=997,
 ):
-
     # Init
     avl_att = _att_indicator(q_code, kind="desc")
     tgt_att = _att_indicator(q_code, kind="targ")
@@ -307,16 +303,15 @@ def walk(
 
 
 def rev(
-    g_list,
-    q_code,
-    fi,
-    t_codes,
-    max_steps=4,
-    init_threshold=1.0,
-    stepsize=0.1,
-    random_state=997,
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        max_steps=4,
+        init_threshold=1.0,
+        stepsize=0.1,
+        random_state=997,
 ):
-
     # Init
     avl_att = _att_indicator(q_code, kind="desc")
     tgt_att = _att_indicator(q_code, kind="targ")
@@ -445,12 +440,12 @@ def _mod_indicator(mod_ids, q_code, t_codes, any_target=True):
         # If any target works, I can just sum them up.
         # Predicting multiple interesting targets will help to some extent! (sum)
         avl_mod = np.sum(avl_mod, axis=1, keepdims=True)
-        
+
         ones_idx = np.where(avl_mod > 0.)
         avl_mod[:] = 0
         avl_mod[ones_idx] = 1
 
-        #avl_mod = np.clip(np.max(avl_mod, axis=1, keepdims=True), a_min=0, a_max=1)
+        # avl_mod = np.clip(np.max(avl_mod, axis=1, keepdims=True), a_min=0, a_max=1)
 
     return avl_mod
 
@@ -493,7 +488,6 @@ def _stochastic_pick(g_list, criteria, n=1, random_state=997):
         warnings.warn(msg)
         # If you cannot be right, be arbitrary
         criteria = [1 / len(criteria) for i in criteria]
-        
 
     draw = np.random.multinomial(1, criteria, size=n)
     picks = np.where(draw == 1)[1]
@@ -538,13 +532,13 @@ def _init_thresholds(init_threshold, stepsize):
 
 
 def _build_diagram(
-    g_sel,
-    avl_att,
-    tgt_att=None,
-    imputation_nodes=True,
-    merge_nodes=False,
-    prune=False,
-    test=False,
+        g_sel,
+        avl_att,
+        tgt_att=None,
+        imputation_nodes=True,
+        merge_nodes=False,
+        prune=False,
+        test=False,
 ):
     if imputation_nodes:
         q_desc = np.where(avl_att)[0]
@@ -581,7 +575,6 @@ def _build_diagram(
 
 
 def _prune(g, tgt_nodes=None):
-
     msg = """
     tgt_nodes:          {}
     tgt_nodes[0]:       {}

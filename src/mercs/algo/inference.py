@@ -1,18 +1,17 @@
+from functools import partial
+
 import networkx as nx
 import numpy as np
-
-from functools import partial, reduce
 from dask import delayed
 
-from ..graph.network import get_ids, node_label
 from ..composition import o, x
+from ..graph.network import get_ids
 from ..utils import debug_print
 
 VERBOSITY = 0
 
 
-def base_inference_algorithm(g, X=None):
-
+def base_inference_algorithm(g):
     # Convert the graph to its functions
     sorted_nodes = list(nx.topological_sort(g))
 
@@ -107,7 +106,7 @@ def base_inference_algorithm(g, X=None):
 def dask_inference_algorithm(g, X=None, sorted_nodes=None):
     if sorted_nodes is None:
         sorted_nodes = list(nx.topological_sort(g))
-    
+
     functions = {}
 
     q_desc_ids = list(get_ids(g, kind="desc"))
@@ -155,7 +154,7 @@ def dask_data_node(g, node, node_name, data, q_desc_ids):
 
 def dask_model_node(g, node, node_name):
     # Collect input data
-    parent_functions = _get_parents_of_model_node(g, node, node_name)
+    parent_functions = _get_parents_of_model_node(g, node)
     collector = delayed(np.stack)(parent_functions, axis=1)
 
     # Convert function
@@ -283,7 +282,7 @@ def _get_parents_of_data_node(g, node, node_name):
     return parent_relative_idx, parent_function
 
 
-def _get_parents_of_model_node(g, node, node_name):
+def _get_parents_of_model_node(g, node_name):
     parent_nodes = [s for s, t in g.in_edges(node_name)]
     parent_indices = [g.nodes[n]["idx"] for n in parent_nodes]
 
@@ -293,7 +292,7 @@ def _get_parents_of_model_node(g, node, node_name):
     return parent_functions
 
 
-def _get_parents_of_prob_node(g, node, node_name):
+def _get_parents_of_prob_node(g, node_name):
     parent_nodes = [s for s, t in g.in_edges(node_name)]
     parent_functions = [g.nodes[n]["dask"] for n in parent_nodes]
 

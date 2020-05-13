@@ -1,12 +1,7 @@
 import numpy as np
-from dask import delayed
 from sklearn.preprocessing import normalize
 
 from ..algo.inference_v3 import compute
-from .compose import o, x
-from ..graph.network import get_ids, node_label, get_nodes
-
-from ..utils import debug_print
 
 VERBOSITY = 0
 
@@ -15,7 +10,6 @@ class NewCompositeModel(object):
     def __init__(self, diagram, desc_ids=None, targ_ids=None, nominal_attributes=None, n_component_models=0):
 
         # Assign desc and targ ids
-
         for k, idx in diagram.nodes():
             if k == 'M' and (idx >= n_component_models):
                 diagram.nodes[(k, idx)]['shape'] = 'square'
@@ -33,7 +27,7 @@ class NewCompositeModel(object):
         self.desc_ids = sorted(list(self.desc_ids))
         self.targ_ids = sorted(list(self.targ_ids))
 
-        self.feature_importances_ = [1/len(self.desc_ids) for _ in self.desc_ids]
+        self.feature_importances_ = [1 / len(self.desc_ids) for _ in self.desc_ids]
 
         self.predict = _get_predict(diagram, self.targ_ids)
 
@@ -45,7 +39,6 @@ class NewCompositeModel(object):
         self.score = 1
 
         return
-
 
     def get_confidences(self, X=None, redo=False, normalize_outputs=True):
 

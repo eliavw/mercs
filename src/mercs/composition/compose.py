@@ -1,7 +1,4 @@
-from functools import lru_cache
-
 def o(f1, f2):
-
     def sequential_composition(*function_arguments):
         return f1(f2(*function_arguments))
 

@@ -7,7 +7,6 @@ from dask import delayed
 from ..composition import o
 from ..utils.inference_tools import (
     _dummy_array,
-    _map_classes,
     _pad_proba,
     _select_nominal,
     _select_numeric,
@@ -16,7 +15,6 @@ from ..utils.inference_tools import (
 
 # Main algorithm
 def inference_algorithm(g, m_list, i_list, data, nominal_ids):
-
     data_node = lambda k, n: k == "D"
     model_node = lambda k, n: k == "M"
     imputation_node = lambda k, n: k == "I"
@@ -51,7 +49,6 @@ def inference_algorithm(g, m_list, i_list, data, nominal_ids):
 
 # Specific Nodes
 def dask_input_data_node(g, node, g_desc_ids, data):
-
     f = _select_numeric(g_desc_ids.index(node[1]))
 
     g.node[node]["dask"] = delayed(f)(data)
@@ -64,7 +61,6 @@ def dask_input_data_node(g, node, g_desc_ids, data):
 
 
 def dask_imputation_node(g, node, i_list, nb_rows):
-
     # Build function
     f1 = _dummy_array
     f2 = i_list[node[1]].transform
@@ -80,7 +76,6 @@ def dask_imputation_node(g, node, i_list, nb_rows):
 
 
 def dask_single_data_node(g, node, m_list):
-
     # Build function
     idx, parent_function = _dask_get_parents_of_numeric_data_node(g, m_list, node)[
         0
@@ -102,7 +97,6 @@ def dask_single_data_node(g, node, m_list):
 
 
 def dask_numeric_data_node(g, node, m_list):
-
     idx_fnc = _dask_get_parents_of_numeric_data_node(g, m_list, node)
 
     parent_functions = [delayed(_select_numeric(idx))(fnc) for idx, fnc in idx_fnc]
@@ -172,6 +166,7 @@ def dask_nominal_data_node(g, node, m_list):
     """
 
     parents = _nominal_parents(g, m_list, node)
+
     def F(parents):
         collector = _nominal_inputs(g, parents, classes)
         return np.sum(collector, axis=0)
@@ -200,7 +195,7 @@ def dask_model_node(g, node, m_list):
 
     # New
     parents = _model_parents(g, node)
-    
+
     def f(parents):
         X = _model_inputs(g, parents)
         return m_list[node[1]].predict(X)
@@ -221,24 +216,26 @@ def dask_model_node(g, node, m_list):
 # Helpers - Function
 def _nominal_inputs(g, parents, classes):
     collector = [
-            _select_nominal(idx)(compute(g, n, proba=True))
-            if len(c) == len(classes)
-            else _pad_proba(c, classes)(_select_nominal(idx)(compute(g, n, proba=True)))
-            for idx, c, n in parents
-        ]
+        _select_nominal(idx)(compute(g, n, proba=True))
+        if len(c) == len(classes)
+        else _pad_proba(c, classes)(_select_nominal(idx)(compute(g, n, proba=True)))
+        for idx, c, n in parents
+    ]
     return collector
+
 
 def _numeric_inputs(g, parents):
     collector = [_select_numeric(idx)(compute(g, n)) for idx, n in parents]
     return collector
+
 
 def _model_inputs(g, parents):
     collector = [compute(g, n) for n in parents]
     collector = np.stack(collector, axis=1)
     return collector
 
-def compute(g, node, proba=False):
 
+def compute(g, node, proba=False):
     result = "result"
     compute = "compute"
 

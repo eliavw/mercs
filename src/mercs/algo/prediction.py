@@ -5,7 +5,6 @@ from functools import reduce
 import networkx as nx
 import numpy as np
 
-from .new_prediction import _stochastic_pick
 from ..graph import add_imputation_nodes, add_merge_nodes, compose, get_ids, get_nodes
 from ..utils import code_to_query, debug_print, encode_attribute, query_to_code
 
@@ -83,20 +82,19 @@ def ma_algorithm(g_list, q_code, init_threshold=1.00, stepsize=0.05, random_stat
 
 
 def mrai_algorithm(
-    g_list,
-    q_code,
-    init_threshold=1.0,
-    stepsize=0.1,
-    avoid_src=None,
-    avoid_tgt=None,
-    return_avl_g=False,
-    greedy=True,
-    stochastic=False,
-    imputation_nodes=True,
-    merge_nodes=True,
-    random_state=997,
+        g_list,
+        q_code,
+        init_threshold=1.0,
+        stepsize=0.1,
+        avoid_src=None,
+        avoid_tgt=None,
+        return_avl_g=False,
+        greedy=True,
+        stochastic=False,
+        imputation_nodes=True,
+        merge_nodes=True,
+        random_state=997,
 ):
-
     # Preliminaries
     if avoid_src is None:
         avoid_src = set([])
@@ -205,8 +203,8 @@ def mrai_algorithm(
         sel_g = []
         avl_g = g_list
         for i in range(len(q_targ)):
-            tgt_q_targ = q_targ[i : i + 1]
-            tgt_avoid_src = q_targ[0:i] + q_targ[i + 1 :]
+            tgt_q_targ = q_targ[i: i + 1]
+            tgt_avoid_src = q_targ[0:i] + q_targ[i + 1:]
             tgt_q_miss = q_miss + tgt_avoid_src
 
             tgt_q_code = query_to_code(q_desc, tgt_q_targ, q_miss=tgt_q_miss)
@@ -419,7 +417,6 @@ def rw_algorithm(g_list, q_code, max_steps=4, random_state=997):
 
 # Helpers
 def _prune(g, tgt_nodes=None):
-
     msg = """
     tgt_nodes:          {}
     tgt_nodes[0]:       {}
@@ -460,6 +457,7 @@ def _prune(g, tgt_nodes=None):
         g.remove_node(n)
 
     return g
+
 
 def _pick(criteria, n=1, random_state=997):
     """

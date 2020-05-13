@@ -1,5 +1,4 @@
 from functools import wraps
-import warnings
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -99,7 +98,7 @@ class CanonicalModel(object):
         except TypeError:
             # The underlying model does not allow expansion, only index 0 makes sense.
             assert (
-                index == 0
+                    index == 0
             ), "You are not an ensemble model, so there can be only one index: 0"
             return self
 
@@ -137,13 +136,13 @@ def canonical_predict_proba(f):
 # Helpers
 def single_target_sklearn_regressor(model):
     return (
-        isinstance(model, (DecisionTreeRegressor, RandomForestRegressor))
-        and model.n_outputs_ == 1
+            isinstance(model, (DecisionTreeRegressor, RandomForestRegressor))
+            and model.n_outputs_ == 1
     )
 
 
 def single_target_sklearn_classifier(model):
     return (
-        isinstance(model, (DecisionTreeClassifier, RandomForestClassifier))
-        and model.n_outputs_ == 1
+            isinstance(model, (DecisionTreeClassifier, RandomForestClassifier))
+            and model.n_outputs_ == 1
     )
