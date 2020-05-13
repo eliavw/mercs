@@ -154,6 +154,7 @@ class Mercs(object):
         inference={"inference", "infr", "inf"},
         classification={"classification", "classifier", "clf"},
         regression={"regression", "regressor", "rgr"},
+        mixed={"mixed", "mix"},
         metadata={"metadata", "meta", "mtd"},
         evaluation={"evaluation", "evl"},
     )
@@ -243,6 +244,7 @@ class Mercs(object):
         self.prd_cfg = self._default_config(self.prediction_algorithm)
         self.inf_cfg = self._default_config(self.inference_algorithm)
         self.evl_cfg = self._default_config(self.evaluation_algorithm)
+
         # Aggregate all configurations
         self.configuration = dict(
             imputation=self.imp_cfg,
@@ -253,6 +255,11 @@ class Mercs(object):
             prediction=self.prd_cfg,
             inference=self.inf_cfg,
         )
+        # Add MixedRandomForest configuration if the algorithm has been selected
+        if self.mixed_algorithm is not None:
+            self.mix_cfg = self._default_config(self.mixed_algorithm)
+            self.configuration["mixed"] = self.mix_cfg
+
         # Update config based on random_state and kwargs
         self._update_config(random_state=random_state, **kwargs)
         self._extra_checks_on_config()
@@ -269,6 +276,9 @@ class Mercs(object):
 
         self.metadata = self._default_metadata(X)
         self._update_metadata(**kwargs)
+
+        if self.mix_cfg:
+            self.configuration["mixed"]["classification_targets"] = list(self.metadata["nominal_attributes"])
 
         self.i_list = self.imputer_algorithm(X, self.metadata.get("nominal_attributes"))
 
@@ -623,7 +633,6 @@ class Mercs(object):
         return config
 
     def _update_config(self, **kwargs):
-
         for kind in self.configuration:
             self._update_dictionary(self.configuration[kind], kind=kind, **kwargs)
 
@@ -659,7 +668,6 @@ class Mercs(object):
                 self.configuration["selection"]["nb_targets"] = 1
 
     def _parse_kwargs(self, kind="selection", **kwargs):
-
         prefixes = [e + self.delimiter for e in self.configuration_prefixes[kind]]
 
         parameter_map = {
