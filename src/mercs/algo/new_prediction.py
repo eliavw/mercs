@@ -38,7 +38,7 @@ def mi(g_list, q_code, fi, t_codes, random_state=997):
     )
 
 
-def mi_old(g_list, q_code, fi, t_codes, random_state=997):
+def mi_old(g_list, q_code, t_codes):
     # Init
     mod_ids = [g.graph["id"] for g in g_list]
 
@@ -83,11 +83,11 @@ def mrai(
     avl_mod = _mod_indicator(mod_ids, q_code, t_codes, any_target=any_target)
     criteria = _mod_criteria(mod_ids, avl_att, fi)
 
-    criteria = (
-            criteria * avl_mod
-    )  # All the criteria of unavailable models are set to zero
+    # All the criteria of unavailable models are set to zero
+    criteria = (criteria * avl_mod)
 
-    criteria[np.where(avl_mod <= 0)[0], :] = -1  # Unavailable models are set to -1, available ones keep their score.
+    # Unavailable models are set to -1, available ones keep their score
+    criteria[np.where(avl_mod <= 0)[0], :] = -1
 
     # Pick
     for c_idx in range(criteria.shape[1]):
@@ -146,9 +146,11 @@ def it(
 
     for step in range(max_steps):
 
-        last = step + 1 == max_steps  # Check if this is our last chance
+        # Check if this is our last chance
+        last = step + 1 == max_steps
         if last:
-            any_target = False  # We finish the job
+            # We finish the job
+            any_target = False
             q_targ_todo = _targ_todo(step_q_code, tgt_att)
             step_q_code = change_role(step_q_code, TARG_ENCODING, MISS_ENCODING)
             step_q_code[q_targ_todo] = TARG_ENCODING
@@ -445,8 +447,6 @@ def _mod_indicator(mod_ids, q_code, t_codes, any_target=True):
         avl_mod[:] = 0
         avl_mod[ones_idx] = 1
 
-        # avl_mod = np.clip(np.max(avl_mod, axis=1, keepdims=True), a_min=0, a_max=1)
-
     return avl_mod
 
 
@@ -475,7 +475,8 @@ def _stochastic_pick(g_list, criteria, n=1, random_state=997):
     """
 
     np.random.seed(random_state)
-    criteria += abs(np.min([0, np.min(criteria)]))  # Shift in case of negative values
+    # Shift in case of negative values
+    criteria += abs(np.min([0, np.min(criteria)]))
     norm = np.linalg.norm(criteria, 1)
 
     if norm > 0:
@@ -496,7 +497,7 @@ def _stochastic_pick(g_list, criteria, n=1, random_state=997):
 
 
 def _greedy_pick(g_list, criteria, thresholds):
-    # I do not think I need to copy!
+    # FIXME: I do not think I need to copy!
     for thr in thresholds:
         g_sel = [g_list[idx].copy() for idx, c in enumerate(criteria) if c >= thr]
         if _stopping_criterion_greedy_pick(g_sel):
@@ -529,8 +530,6 @@ def _init_thresholds(init_threshold, stepsize):
 
 
 # Graph
-
-
 def _build_diagram(
         g_sel,
         avl_att,
