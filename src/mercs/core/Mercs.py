@@ -186,6 +186,12 @@ class Mercs(object):
             mixed_algorithm=mixed_algorithm,
             random_state=random_state
         )
+
+        # Add MixedRandomForest configuration if the algorithm has been selected
+        if mixed_algorithm:
+            self.params["mixed_algorithm"] = mixed_algorithm
+            self.mixed_algorithm = self.mixed_algorithms[mixed_algorithm]
+
         # For some reason, some parameters are expected to be passed as kwargs, so we aggregate them here with the
         # explicitly-passed parameters
         self.params = {**self.params, **kwargs}
@@ -205,7 +211,6 @@ class Mercs(object):
         self.induction_algorithm = self.induction_algorithms[induction_algorithm]  # For now, we only have one.
         self.imputer_algorithm = self.imputer_algorithms[imputer_algorithm]
         self.evaluation_algorithm = self.evaluation_algorithms[evaluation_algorithm]
-        self.mixed_algorithm = self.mixed_algorithms[mixed_algorithm]
 
         # Global variables initialization
         self.m_codes = np.array([])
@@ -255,8 +260,10 @@ class Mercs(object):
             prediction=self.prd_cfg,
             inference=self.inf_cfg,
         )
+
         # Add MixedRandomForest configuration if the algorithm has been selected
-        if self.mixed_algorithm is not None:
+        self.mix_cfg = None
+        if mixed_algorithm:
             self.mix_cfg = self._default_config(self.mixed_algorithm)
             self.configuration["mixed"] = self.mix_cfg
 
@@ -296,6 +303,7 @@ class Mercs(object):
             self.regressor_algorithm,
             self.clf_cfg,
             self.rgr_cfg,
+            # self.mix_cfg,
             **self.ind_cfg
         )
 
