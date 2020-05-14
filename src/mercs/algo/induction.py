@@ -42,8 +42,10 @@ def base_induction_algorithm(
         metadata,
         classifier,
         regressor,
+        mixed,
         classifier_kwargs,
         regressor_kwargs,
+        mixed_kwargs,
         random_state=997,
         calculation_method_feature_importances="default",
         n_jobs=1,
@@ -57,8 +59,10 @@ def base_induction_algorithm(
         metadata {dict} -- Metadata of MERCS
         classifier {Supported ML learner} -- Supported ML learner
         regressor {Supported ML learner} -- Supported ML learner
+        mixed {Supported ML mixed learner} -- Supported ML mixed learner
         classifier_kwargs {dict} -- Kwargs for classifier
         regressor_kwargs {dict} -- Kwargs for regressor
+        mixed_kwargs {dict} -- kwargs for mixed learner
     
     Keyword Arguments:
         random_state {int} -- Seed for random numbers (default: {997})
@@ -69,7 +73,7 @@ def base_induction_algorithm(
         ValueError: When trying to learn a model with both nominal and numeric outputs.
     
     Returns:
-        list -- List of learned ML-models
+        m_list -- List of learned ML-models
     """
 
     assert isinstance(data, np.ndarray)
@@ -105,6 +109,8 @@ def base_induction_algorithm(
         numeric_attributes,
         regressor,
         regressor_kwargs,
+        mixed,
+        mixed_kwargs,
         random_states,
         calculation_method_feature_importances,
         data,
@@ -129,7 +135,7 @@ def expand_induction_algorithm(
         verbose=0,
 ):
     """Basic induction algorithm. Models according to the m_codes it receives.
-    
+
     Arguments:
         data {np.ndarray} -- Input data
         m_codes {np.ndarray} -- Model codes
@@ -138,17 +144,17 @@ def expand_induction_algorithm(
         regressor {Supported ML learner} -- Supported ML learner
         classifier_kwargs {dict} -- Kwargs for classifier
         regressor_kwargs {dict} -- Kwargs for regressor
-    
+
     Keyword Arguments:
         random_state {int} -- Seed for random numbers (default: {997})
         n_jobs {int} -- Joblib can be used in training. (default: {1})
         verbose {int} -- Verbosity level for Joblib. (default: {0})
-    
+
     Raises:
         ValueError: When trying to learn a model with both nominal and numeric outputs.
-    
+
     Returns:
-        list -- List of learned ML-models
+        m_list -- List of learned ML-models
     """
     m_list = base_induction_algorithm(
         data,
@@ -173,8 +179,22 @@ def _expand_m_list(m_list):
 
 
 def _build_models(parameters, n_jobs=1, verbose=0):
-    m_list = []
+    """ Method in charge of learning the models based on the given parameters. It can be done is parallel by specifying
+    the number of jobs.
+
+    Args:
+        parameters: configuration parameters of the models
+        n_jobs: number of parallel jobs
+        verbose: verbosity level for multi-core learning
+
+    Returns:
+        m_list: list of trained models
+
+    """
     if n_jobs < 2:
+        if n_jobs < 1:
+            msg = """Number of jobs needs to be at least 1. Assuming 1 job."""
+            warnings.warn(msg)
         m_list = [_learn_model(*a, **k) for a, k in parameters]
     else:
         msg = """Training is being parallellized using Joblib. Number of jobs = {}""".format(
@@ -196,13 +216,34 @@ def _build_parameters(
         numeric_attributes,
         regressor,
         regressor_kwargs,
+        mixed,
+        mixed_kwargs,
         random_states,
         calculation_method_feature_importances,
         data,
 ):
+    """ Creates the "parameters" object used by the models
+
+    Args:
+        ids: query ids in the form of [(descriptive, target), (descriptive, target), ...]
+        nominal_attributes: idxs of the nominal attributes
+        classifier: classifier algorithm
+        classifier_kwargs: classifier configuration
+        numeric_attributes: idxs of the numeric attributes
+        regressor: regressor algorithm
+        regressor_kwargs: regressor configuration
+        mixed: mixed learning algorithm
+        mixed_kwargs: mixed learner configuration
+        random_states:
+        calculation_method_feature_importances:
+        data: training data
+
+    Returns:
+        parameters: list of the model parameters
+
+    """
     parameters = []
     for idx, (desc_ids, targ_ids) in enumerate(ids):
-
         if set(targ_ids).issubset(nominal_attributes):
             learner = classifier
             out_kind = "nominal"
@@ -220,9 +261,7 @@ def _build_parameters(
             raise ValueError(msg)
 
         kwargs["random_state"] = random_states[idx]
-        kwargs[
-            "calculation_method_feature_importances"
-        ] = calculation_method_feature_importances
+        kwargs["calculation_method_feature_importances"] = calculation_method_feature_importances
 
         kwargs = _add_categorical_features_to_kwargs(
             learner, desc_ids, nominal_attributes, kwargs

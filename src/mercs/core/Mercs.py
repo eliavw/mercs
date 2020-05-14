@@ -52,7 +52,6 @@ try:
 except:
     CBC, CBR = None, None
 
-# FIXME: what is this package?
 try:
     from wekalearn import RandomForestClassifier as WLC
     from wekalearn import RandomForestRegressor as WLR
@@ -191,6 +190,8 @@ class Mercs(object):
         if mixed_algorithm:
             self.params["mixed_algorithm"] = mixed_algorithm
             self.mixed_algorithm = self.mixed_algorithms[mixed_algorithm]
+        else:
+            self.mixed_algorithm = None
 
         # For some reason, some parameters are expected to be passed as kwargs, so we aggregate them here with the
         # explicitly-passed parameters
@@ -200,12 +201,8 @@ class Mercs(object):
         #   N.b.: For some parameters, first try to look up the key.
         #   If the key is not found, we assume the algorithm itself was passed.
         self.selection_algorithm = self.selection_algorithms[selection_algorithm]
-        self.classifier_algorithm = self.classifier_algorithms.get(
-            classifier_algorithm, classifier_algorithm
-        )
-        self.regressor_algorithm = self.regressor_algorithms.get(
-            regressor_algorithm, regressor_algorithm
-        )
+        self.classifier_algorithm = self.classifier_algorithms.get(classifier_algorithm, classifier_algorithm)
+        self.regressor_algorithm = self.regressor_algorithms.get(regressor_algorithm, regressor_algorithm)
         self.prediction_algorithm = self.prediction_algorithms[prediction_algorithm]
         self.inference_algorithm = self.inference_algorithms[inference_algorithm]
         self.induction_algorithm = self.induction_algorithms[induction_algorithm]  # For now, we only have one.
@@ -301,9 +298,10 @@ class Mercs(object):
             self.metadata,
             self.classifier_algorithm,
             self.regressor_algorithm,
+            self.mixed_algorithm,
             self.clf_cfg,
             self.rgr_cfg,
-            # self.mix_cfg,
+            self.mix_cfg,
             **self.ind_cfg
         )
 
