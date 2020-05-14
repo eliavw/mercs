@@ -186,6 +186,8 @@ class Mercs(object):
             random_state=random_state
         )
 
+        print(mixed_algorithm)
+
         # Add MixedRandomForest configuration if the algorithm has been selected
         if mixed_algorithm:
             self.params["mixed_algorithm"] = mixed_algorithm
@@ -288,7 +290,8 @@ class Mercs(object):
 
         # N.b.: `random state` parameter is in `self.sel_cfg`
         if m_codes is None:
-            self.m_codes = self.selection_algorithm(self.metadata, **self.sel_cfg)
+            generate_mixed_codes = True if self.mix_cfg else False
+            self.m_codes = self.selection_algorithm(self.metadata, generate_mixed_codes, **self.sel_cfg)
         else:
             self.m_codes = m_codes
 
