@@ -1,421 +1,578 @@
-import copy
 import warnings
 from functools import reduce
 
 import networkx as nx
 import numpy as np
+from networkx import NetworkXNoCycle
+from networkx.algorithms import find_cycle
 
-from ..graph import add_imputation_nodes, add_merge_nodes, compose, get_ids, get_nodes
-from ..utils import code_to_query, debug_print, encode_attribute, query_to_code
-
-DESC_ENCODING = encode_attribute(1, [1], [2])
-TARG_ENCODING = encode_attribute(2, [1], [2])
-MISS_ENCODING = encode_attribute(0, [1], [2])
+from ..graph import add_imputation_nodes, add_merge_nodes, compose_all, get_ids
+from ..utils import (
+    change_role,
+    debug_print,
+    get_att,
+    ENCODING,
+    DESC_ENCODING,
+    TARG_ENCODING,
+    MISS_ENCODING,
+)
 
 VERBOSITY = 0
 
 
-def mi_algorithm(g_list, q_code, random_state=997):
-    q_desc, q_targ, q_miss = code_to_query(q_code)
-
-    def criterion(g):
-        """If g predicts a relevant target = OK"""
-        tgt_ids = get_ids(g, kind="tgt")
-        return len(set(q_targ).intersection(tgt_ids)) > 0
-
-    g_relevant = [g for g in g_list if criterion(g)]
-    g_relevant = [copy.copy(g) for g in g_relevant]
-
-    result = reduce(compose, g_relevant)
-
-    # Post-processing to get a good graph
-    add_imputation_nodes(result, q_desc)
-    add_merge_nodes(result)
-
-    return result
-
-
-def ma_algorithm(g_list, q_code, init_threshold=1.00, stepsize=0.05, random_state=997):
-    q_desc, q_targ, q_miss = code_to_query(q_code)
-
-    def criterion(g):
-        src_ids = get_ids(g, kind="src")
-        tgt_ids = get_ids(g, kind="tgt")
-
-        quantifier = len(set(q_desc).intersection(src_ids)) / len(src_ids)
-        rel_tgt = tgt_ids.intersection(q_targ)
-        yes_no = len(rel_tgt) > 0
-        relevance_criterion = int(yes_no) * quantifier
-
-        msg = """
-        rel_tgt:                     {}
-        quantifier:                 {}
-        relevance_criterion:        {}
-        """.format(
-            rel_tgt, quantifier, relevance_criterion
-        )
-        debug_print(msg, level=1, V=VERBOSITY)
-
-        return relevance_criterion
-
-    thresholds = np.clip(np.arange(init_threshold, -stepsize, -stepsize), 0, 1)
-
-    for thr in thresholds:
-        g_relevant = [g for g in g_list if criterion(g) > thr]
-        if len(g_relevant) > 0:
-            msg = """
-            We have selected {0} model(s) at threshold: {1:.2f}
-            """.format(
-                len(g_relevant), thr
-            )
-            debug_print(msg, level=1, V=VERBOSITY)
-            break
-
-    g_relevant = [copy.copy(g) for g in g_relevant]
-    result = reduce(compose, g_relevant)
-
-    # Post-processing to get a good graph
-    add_imputation_nodes(result, q_desc)
-    add_merge_nodes(result)
-
-    return result
-
-
-def mrai_algorithm(
+def mi(g_list, q_code, fi, t_codes, random_state=997):
+    return mrai(
         g_list,
         q_code,
-        init_threshold=1.0,
+        fi,
+        t_codes,
+        init_threshold=-0.1,
         stepsize=0.1,
-        avoid_src=None,
-        avoid_tgt=None,
-        return_avl_g=False,
         greedy=True,
         stochastic=False,
+        any_target=False,
         imputation_nodes=True,
         merge_nodes=True,
+        return_avl_g=False,
+        random_state=random_state,
+    )
+
+
+def mi_old(g_list, q_code, t_codes):
+    # Init
+    mod_ids = [g.graph["id"] for g in g_list]
+
+    # Calculate criteria
+    avl_att = _att_indicator(q_code, kind="desc")
+    avl_mod = _mod_indicator(mod_ids, q_code, t_codes, any_target=True)
+    criteria = avl_mod
+
+    # Pick
+    g_sel = _avl_pick(g_list, criteria)
+
+    # Build new graph
+    q_diagram = _build_diagram(
+        g_sel, avl_att, imputation_nodes=True, merge_nodes=True, test=True
+    )
+
+    return q_diagram
+
+
+def mrai(
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        init_threshold=1.0,
+        stepsize=0.1,
+        greedy=True,
+        stochastic=False,
+        any_target=False,
+        imputation_nodes=True,
+        merge_nodes=True,
+        return_avl_g=False,
         random_state=997,
 ):
-    # Preliminaries
-    if avoid_src is None:
-        avoid_src = set([])
-    if avoid_tgt is None:
-        avoid_tgt = set([])
+    # Init
+    thresholds = _init_thresholds(init_threshold, stepsize)
 
-    q_desc, q_targ, q_miss = code_to_query(q_code)
-    nb_tgt = len(q_targ)
+    mod_ids = [g.graph["id"] for g in g_list]
 
-    thresholds = np.arange(init_threshold, -1 - stepsize, -stepsize)
-    thresholds = np.clip(thresholds, -1, 1)
+    # Calculate criteria
+    avl_att = _att_indicator(q_code, kind="desc")
+    avl_mod = _mod_indicator(mod_ids, q_code, t_codes, any_target=any_target)
+    criteria = _mod_criteria(mod_ids, avl_att, fi)
 
-    # Methods
-    def stopping_criterion(list_of_graphs):
-        return len(list_of_graphs) > 0
+    # All the criteria of unavailable models are set to zero
+    criteria = (criteria * avl_mod)
 
-    def criterion(g):
-        src_ids = get_ids(g, kind="src")
-        tgt_ids = get_ids(g, kind="tgt")
+    # Unavailable models are set to -1, available ones keep their score
+    criteria[np.where(avl_mod <= 0)[0], :] = -1
 
-        rel_src = src_ids.intersection(q_desc)
-        rel_tgt = tgt_ids.intersection(q_targ)
+    # Pick
+    for c_idx in range(criteria.shape[1]):
+        criterion = criteria[:, c_idx]
 
-        bad_src = src_ids.intersection(set(q_targ).union(avoid_src))
-        bad_tgt = tgt_ids.intersection(avoid_tgt)  # Things I should not predict
-
-        data_nodes = get_nodes(g, kind="data")
-
-        quantifier = 0
-        for n in data_nodes:
-            idx = g.node[n]["idx"]
-
-            if idx in rel_src:
-                quantifier += g.node[n]["fi"]
-            if idx in bad_src:
-                quantifier -= g.node[n]["fi"]
-
-        f_01 = max(0.1, quantifier)
-        f_02 = int(len(rel_tgt) > 0)
-        f_03 = int(len(bad_tgt) > 0)
-
-        if f_02:
-            return f_01
-        elif f_03:
-            # print("Bad target: {}".format(bad_tgt))
-            # No relevant targets, and a bad target. This model contributes nothing.
-            return -1
+        if greedy:
+            g_sel = _greedy_pick(g_list, criterion, thresholds)
+        elif stochastic:
+            g_sel = _stochastic_pick(g_list, criterion, n=1, random_state=random_state)
         else:
-            return -1
-
-    # Actual algorithm
-    if stochastic:
-        criteria = [criterion(g) for g in g_list]
-        picks = _pick(criteria, n=1, random_state=random_state)
-
-        msg = """
-                criteria:   {}
-                picks:      {}
-                """.format(
-            criteria, picks
-        )
-        debug_print(msg, level=1, V=VERBOSITY)
-
-        sel_g = [g_list[g_idx] for g_idx in picks]
-
-        sel_g = [copy.deepcopy(g) for g in sel_g]
-        res_g = reduce(compose, sel_g)
-
-    elif nb_tgt == 1 or greedy:
-        # Don't stop until you reach the goal
-        criteria = [criterion(g) for g in g_list]
-
-        for thr in thresholds:
-            sel_g = [
-                g_list[g_idx] for g_idx, c in enumerate(criteria) if c > thr
-            ]  # Available graphs = Graphs that satisfy the criterion
-
-            if stopping_criterion(sel_g):
-                mod_ids = [get_nodes(g, kind="model") for g in sel_g]
-                msg = """
-                We have selected    {0} model(s) 
-                at threshold:       {1:.2f}
-                with model ids:     {2}
-                """.format(
-                    len(sel_g), thr, mod_ids
-                )
-                debug_print(msg, level=1, V=VERBOSITY)
-                break
-
-        sel_g = [copy.deepcopy(g) for g in sel_g]
-
-        for g in sel_g:
-            add_imputation_nodes(g, q_desc)
-
-        res_g = reduce(compose, sel_g)
-
-    elif nb_tgt > 1:
-        msg = """
-        Multi-target case:      
-        with target attributes: {}
-        """.format(
-            q_targ
-        )
-        debug_print(msg, V=VERBOSITY)
-
-        sel_g = []
-        avl_g = g_list
-        for i in range(len(q_targ)):
-            tgt_q_targ = q_targ[i: i + 1]
-            tgt_avoid_src = q_targ[0:i] + q_targ[i + 1:]
-            tgt_q_miss = q_miss + tgt_avoid_src
-
-            tgt_q_code = query_to_code(q_desc, tgt_q_targ, q_miss=tgt_q_miss)
-
             msg = """
-            tgt_q_code:     {}
-            """.format(
-                tgt_q_code
-            )
-            debug_print(msg, level=2, V=VERBOSITY)
-            tgt_g, avl_g = mrai_algorithm(
-                avl_g,
-                tgt_q_code,
-                avoid_src=tgt_avoid_src,
-                return_avl_g=True,
-                merge_nodes=False,
-            )
+            You either need to pick in a greedy fashion (picking the most appropriate models first) or
+            in a stochastic fashion (more likely to pick the most appropriate models). Both of those
+            options evaluated to False so I have no idea what you are trying to do.
+            """
+            raise NotImplementedError(msg)
 
-            sel_g.append(tgt_g)
-
-        res_g = reduce(compose, sel_g)
-
-    else:
-        msg = """
-        nb_tgt:     {}
-        We expect one or more targets.
-        """.format(
-            nb_tgt
-        )
-        raise ValueError(msg)
-
-    if imputation_nodes:
-        add_imputation_nodes(res_g, q_desc)
-    if merge_nodes:
-        add_merge_nodes(res_g)
+    # Build new graph
+    q_diagram = _build_diagram(
+        g_sel,
+        avl_att,
+        imputation_nodes=imputation_nodes,
+        merge_nodes=merge_nodes,
+        test=True,
+    )
 
     if return_avl_g:
-        avl_g = [g for g in g_list if g not in sel_g]
-        return res_g, avl_g
+        sel_ids = [g.graph["id"] for g in g_sel]
+        avl_g = [g for g in g_list if g.graph["id"] not in sel_ids]
+        return q_diagram, avl_g
     else:
-        return res_g
+        return q_diagram
 
 
-def it_algorithm(g_list, q_code, max_steps=4, random_state=997):
+def it(
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        max_steps=4,
+        init_threshold=1.0,
+        stepsize=0.1,
+        random_state=997,
+):
+    # Init
+    stochastic = False
+    greedy = True
+    any_target = True
+
+    g_sel = []
+    avl_att = _att_indicator(q_code, kind="desc")
+    tgt_att = _att_indicator(q_code, kind="targ")
+
+    step_g_list = g_list
+    step_q_code = change_role(q_code, MISS_ENCODING, TARG_ENCODING)
+
+    for step in range(max_steps):
+
+        # Check if this is our last chance
+        last = step + 1 == max_steps
+        if last:
+            # We finish the job
+            any_target = False
+            q_targ_todo = _targ_todo(step_q_code, tgt_att)
+            step_q_code = change_role(step_q_code, TARG_ENCODING, MISS_ENCODING)
+            step_q_code[q_targ_todo] = TARG_ENCODING
+
+        step_q_diagram, step_g_list = mrai(
+            step_g_list,
+            step_q_code,
+            fi,
+            t_codes,
+            init_threshold=init_threshold,
+            stepsize=stepsize,
+            greedy=greedy,
+            stochastic=stochastic,
+            any_target=any_target,
+            imputation_nodes=True,
+            merge_nodes=False,
+            return_avl_g=True,
+            random_state=random_state,
+        )
+
+        # Remember graph of this step
+        g_sel.append(step_q_diagram)
+
+        # Update query
+        step_targ = list(step_q_diagram.graph["targ_ids"])
+        step_q_code[step_targ] = DESC_ENCODING
+
+        if _stopping_criterion_it(step_q_code, tgt_att):
+            break
+
+    # Build diagram
+    q_diagram = _build_diagram(
+        g_sel,
+        avl_att,
+        tgt_att,
+        imputation_nodes=False,
+        merge_nodes=True,
+        prune=True,
+        test=False,
+    )
+    return q_diagram
+
+
+def rw(
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        max_steps=4,
+        nb_walks=1,
+        init_threshold=1.0,
+        stepsize=0.1,
+        random_state=997,
+):
+    q_diagrams = [
+        walk(
+            g_list,
+            q_code,
+            fi,
+            t_codes,
+            max_steps=max_steps,
+            init_threshold=init_threshold,
+            stepsize=stepsize,
+            random_state=random_state + i,
+        )
+        for i in range(nb_walks)
+    ]
+
+    return q_diagrams
+
+
+def walk(
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        max_steps=4,
+        init_threshold=1.0,
+        stepsize=0.1,
+        random_state=997,
+):
+    # Init
+    avl_att = _att_indicator(q_code, kind="desc")
+    tgt_att = _att_indicator(q_code, kind="targ")
+    stochastic = True
+    greedy = False
+    any_target = True
+
+    g_sel = []
+    g_tgt = set([])
+    q_desc = set(get_att(q_code, kind="desc"))
+    q_miss = set(get_att(q_code, kind="miss"))
+
+    step_g_list = g_list
+    step_q_code = q_code.copy()
+
+    # Generate chain
+    for step in reversed(range(max_steps)):
+        step_q_diagram, step_g_list = mrai(
+            step_g_list,
+            step_q_code,
+            fi,
+            t_codes,
+            init_threshold=init_threshold,
+            stepsize=stepsize,
+            greedy=greedy,
+            stochastic=stochastic,
+            any_target=any_target,
+            imputation_nodes=False,
+            merge_nodes=True,
+            return_avl_g=True,
+            random_state=random_state,
+        )
+
+        # Update query
+        step_targ = step_q_diagram.graph["targ_ids"]
+        step_desc = step_q_diagram.graph["desc_ids"]
+
+        # Remember graph of this step (Append in front!)
+        g_sel.insert(0, step_q_diagram)
+        g_tgt = g_tgt.union(step_targ)
+
+        # Extract info
+        step_q_code[:] = MISS_ENCODING
+        step_q_code[list(q_desc)] = DESC_ENCODING
+        step_q_code[list(q_miss.intersection(step_desc))] = TARG_ENCODING
+        step_q_code[
+            list(g_tgt)
+        ] = (
+            MISS_ENCODING
+        )  # Consider future targets forbidden (this might not be necessary)
+
+        if _stopping_criterion_rw(step_q_code, step):
+            break
+
+    # Build diagram
+    avl_desc = set(q_desc)
+    for g in g_sel:
+        add_imputation_nodes(g, avl_desc)
+        avl_desc = avl_desc.union(g.graph["targ_ids"])
+
+    q_diagram = _build_diagram(
+        g_sel,
+        avl_att,
+        tgt_att,
+        imputation_nodes=False,
+        merge_nodes=True,
+        prune=True,
+        test=False,
+    )
+    return q_diagram
+
+
+def rev(
+        g_list,
+        q_code,
+        fi,
+        t_codes,
+        max_steps=4,
+        init_threshold=1.0,
+        stepsize=0.1,
+        random_state=997,
+):
+    # Init
+    avl_att = _att_indicator(q_code, kind="desc")
+    tgt_att = _att_indicator(q_code, kind="targ")
+    stochastic = True
+    greedy = False
+    any_target = True
+
+    g_sel = []
+    g_tgt = set([])
+    q_desc = set(get_att(q_code, kind="desc"))
+    q_miss = set(get_att(q_code, kind="miss"))
+
+    step_g_list = g_list
+    step_q_code = q_code
+
+    # Generate chain
+    for step in reversed(range(max_steps)):
+        step_q_diagram, step_g_list = mrai(
+            step_g_list,
+            step_q_code,
+            fi,
+            t_codes,
+            init_threshold=init_threshold,
+            stepsize=stepsize,
+            greedy=greedy,
+            stochastic=stochastic,
+            any_target=any_target,
+            imputation_nodes=False,
+            merge_nodes=True,
+            return_avl_g=True,
+            random_state=random_state,
+        )
+
+        # Update query
+        step_targ = step_q_diagram.graph["targ_ids"]
+        step_desc = step_q_diagram.graph["desc_ids"]
+
+        # Remember graph of this step (Append in front!)
+        g_sel.insert(0, step_q_diagram)
+        g_tgt = g_tgt.union(step_targ)
+
+        # Extract info
+        step_q_code[list(q_miss.intersection(step_desc))] = TARG_ENCODING
+        step_q_code[
+            list(g_tgt)
+        ] = (
+            MISS_ENCODING
+        )  # Consider future targets forbidden (this might not be necessary)
+
+        if _stopping_criterion_rw(step_q_code, step):
+            break
+
+    # Build diagram
+    avl_desc = set(q_desc)
+    for g in g_sel:
+        print(g.nodes())
+        print(g.graph["desc_ids"], g.graph["targ_ids"])
+        add_imputation_nodes(g, avl_desc)
+        avl_desc = avl_desc.union(g.graph["targ_ids"])
+
+    q_diagram = _build_diagram(
+        g_sel,
+        avl_att,
+        tgt_att,
+        imputation_nodes=False,
+        merge_nodes=True,
+        prune=True,
+        test=False,
+    )
+    return q_diagram
+
+
+# Stopping criteria
+def _stopping_criterion_it(step_q_code, tgt_att):
+    q_targ_todo = _targ_todo(step_q_code, tgt_att)
+    return not np.any(q_targ_todo)
+
+
+def _stopping_criterion_rw(step_q_code, step):
+    reason_01 = len(get_att(step_q_code, kind="targ")) == 0
+    reason_02 = step == 0
+    return reason_01 or reason_02
+
+
+def _stopping_criterion_greedy_pick(list_of_graphs):
+    return len(list_of_graphs) > 0
+
+
+def _targ_todo(step_q_code, tgt_att):
     """
+    Everything you want to know and do not know yet.
+    """
+    return (tgt_att & (step_q_code != DESC_ENCODING)).astype(bool)
 
-    Notes
-    -----
-    `avl` is short for `available`
 
-    avl_desc:   Available descriptive attributes = Attributes that are available AS descriptive ones.
-                So, this means these attributes are KNOWN.
-    avl_targ:   Available target attributes = Attributes that are available AS target ones.
-                So, this means these attributes are UNKNOWN.
+# Criteria-calculations
+def _mod_criteria(mod_ids, avl_att, fi):
+    return np.dot(fi[mod_ids, :], avl_att).reshape(-1, 1)
+
+
+def _mod_indicator(mod_ids, q_code, t_codes, any_target=True):
+    """Indicator vector of available models.
+
+    Available models are models which are eligible for selection by 
+    the algorithm. Currently, this just means that the model has to be 
+    relevant, it has to predict at least one target that is required by the query.
+
+    Hence, changes in behaviour (e.g., predicting a missing attribute is also OK) have to
+    be realized at the level of the query, not here.
 
     Parameters
     ----------
-    g_list
-    q_code
-    max_steps
-    random_state
+    mod_ids: 
+    q_code: 
+    t_codes: 
 
     Returns
     -------
 
     """
 
-    def stopping_criterion(known_attributes, target_attributes):
-        """All targets known = DONE"""
-        return len(set(target_attributes).difference(known_attributes)) == 0
+    avl_tgt = np.eye(q_code.shape[0], dtype=int)[q_code == TARG_ENCODING].T
+    avl_mod = np.dot(t_codes[mod_ids, :], avl_tgt)
 
-    # Init
-    q_desc, q_targ, q_miss = code_to_query(q_code, return_list=True)
-    avl_desc = set(q_desc)
-    avl_targ = set(q_targ + q_miss)
-    avl_atts = set(q_desc + q_targ + q_miss)
+    if any_target:
+        # If any target works, I can just sum them up.
+        # Predicting multiple interesting targets will help to some extent! (sum)
+        avl_mod = np.sum(avl_mod, axis=1, keepdims=True)
 
-    avl_q = query_to_code(avl_desc, avl_targ, atts=avl_atts)  # 0: Known, 1: Unknown
+        ones_idx = np.where(avl_mod > 0.)
+        avl_mod[:] = 0
+        avl_mod[ones_idx] = 1
 
-    avl_g = g_list
+    return avl_mod
 
-    greedy = True
-    sel_g = []
-    for step in range(max_steps):
-        last = step == (max_steps - 1)  # Check if this is our last chance
 
-        if last:
-            # All unknown targets are the target of the last step.
-            avl_targ = set(q_targ).difference(avl_desc)
-            avl_q = query_to_code(avl_desc, avl_targ, atts=avl_atts)
-            greedy = False  # Get all remaining targets
+def _att_indicator(q_code, kind="desc"):
+    return (q_code == ENCODING[kind]).astype(int)
 
-        # Get next step
-        nxt_g, avl_g = mrai_algorithm(
-            avl_g,
-            avl_q,
-            return_avl_g=True,
-            greedy=greedy,
-            avoid_src=q_targ,
-            avoid_tgt=avl_desc,
-            imputation_nodes=True,
-            merge_nodes=False,
-            random_state=random_state,
-        )
-        # IT goes from front to back
-        sel_g.append(nxt_g)
 
-        # Update query
-        nxt_targ = get_ids(nxt_g, kind="targ")
-        avl_desc = avl_desc.union(nxt_targ)
-        avl_targ = avl_targ.difference(nxt_targ)
+# Pick models
+def _stochastic_pick(g_list, criteria, n=1, random_state=997):
+    """
+    Interpret an array of appropriateness scores as a distribution
+    corresponding to the probability of a certain model being selected.
 
-        avl_q = query_to_code(avl_desc, avl_targ, atts=avl_atts)
 
-        if stopping_criterion(avl_desc, q_targ):
-            break
+    Parameters
+    ----------
+    criteria:   list
+                Array that quantifies how likely a pick should be.
+    n:          int
+                Number of picks
 
-    # Composing
-    res_g = nx.DiGraph()
-    avl_desc = set(q_desc)
-    for g in sel_g:
+    Returns
+    -------
+    picks:      np.ndarray
+                List of indices that were picked
+    """
+
+    np.random.seed(random_state)
+    # Shift in case of negative values
+    criteria += abs(np.min([0, np.min(criteria)]))
+    norm = np.linalg.norm(criteria, 1)
+
+    if norm > 0:
+        criteria = criteria / norm
+    else:
         msg = """
-        AVL DESC: {}
-        """.format(
-            avl_desc
-        )
-        debug_print(msg, level=1, V=VERBOSITY)
+        Not a single appropriate model was found, therefore
+        making an arbitrary choice.
+        """
+        warnings.warn(msg)
+        # If you cannot be right, be arbitrary
+        criteria = [1 / len(criteria) for i in criteria]
 
-        # add_imputation_nodes(g, avl_desc)
-        res_g = compose(res_g, g)
+    draw = np.random.multinomial(1, criteria, size=n)
+    picks = np.where(draw == 1)[1]
 
-        g_targ = get_ids(g, kind="targ")
-        avl_desc = avl_desc.union(g_targ)
-
-    add_merge_nodes(res_g)
-    res_g = _prune(res_g, q_targ)
-
-    return res_g
+    return [g_list[g_idx].copy() for g_idx in picks]
 
 
-def rw_algorithm(g_list, q_code, max_steps=4, random_state=997):
-    def stopping_criterion(targets, step_number):
-        reason_01 = len(targets) == 0
-        reason_02 = step_number == max_steps - 1
-        return reason_01 or reason_02
-
-    # Init - diagrams
-    avl_g = g_list
-    sel_g = []
-
-    # Init - Attribute sets
-    q_desc, q_targ, q_miss = code_to_query(q_code, return_list=True)
-
-    sel_targ = set([])
-    avl_desc = set(q_desc)
-    avl_targ = set(q_targ)
-    avl_atts = set(q_desc + q_targ + q_miss)
-    avl_q = q_code
-
-    for step in range(max_steps):
-        # Get next step
-        nxt_g, avl_g = mrai_algorithm(
-            avl_g,
-            avl_q,
-            return_avl_g=True,
-            avoid_src=q_targ,
-            avoid_tgt=avl_desc,
-            stochastic=True,
-            merge_nodes=False,
-            imputation_nodes=False,
-            random_state=random_state,
-        )
-        # RW goes from back to front
-        sel_g.insert(0, nxt_g)
-
-        # Update query
-        nxt_g_desc = get_ids(nxt_g, kind="desc")
-        nxt_g_targ = get_ids(nxt_g, kind="targ")
-
-        sel_targ = sel_targ.union(nxt_g_targ)
-
-        avl_desc = avl_desc
-        avl_targ = set(q_miss).difference(sel_targ).intersection(nxt_g_desc)
-        avl_q = query_to_code(avl_desc, avl_targ, atts=avl_atts)
-
-        if stopping_criterion(avl_targ, step):
+def _greedy_pick(g_list, criteria, thresholds):
+    # FIXME: I do not think I need to copy!
+    for thr in thresholds:
+        g_sel = [g_list[idx].copy() for idx, c in enumerate(criteria) if c >= thr]
+        if _stopping_criterion_greedy_pick(g_sel):
             break
-
-    # Composing
-    res_g = nx.DiGraph()
-    avl_desc = set(q_desc)
-    for g in sel_g:
-        msg = """
-        AVL DESC: {}
-        """.format(
-            avl_desc
-        )
-        debug_print(msg, level=1, V=VERBOSITY)
-        add_imputation_nodes(g, avl_desc)
-        res_g = compose(res_g, g)
-
-        g_targ = get_ids(g, kind="targ")
-        avl_desc = avl_desc.union(g_targ)
-
-    add_merge_nodes(res_g)
-    res_g = _prune(res_g, q_targ)
-
-    return res_g
+    return g_sel
 
 
-# Helpers
+def _avl_pick(g_list, criteria):
+    g_sel = [g_list[idx].copy() for idx, c in enumerate(criteria) if c > 0.8]
+    return g_sel
+
+
+# Initializations
+def _init_thresholds(init_threshold, stepsize):
+    """Initialize thresholds array based on its two defining parameters.
+
+    Parameters
+    ----------
+    init_threshold: 
+    stepsize: 
+
+    Returns
+    -------
+
+    """
+
+    thresholds = np.arange(init_threshold, -1 - stepsize, -stepsize)
+    thresholds = np.clip(thresholds, -1, 1)
+    return thresholds
+
+
+# Graph
+def _build_diagram(
+        g_sel,
+        avl_att,
+        tgt_att=None,
+        imputation_nodes=True,
+        merge_nodes=False,
+        prune=False,
+        test=False,
+):
+    if imputation_nodes:
+        q_desc = np.where(avl_att)[0]
+        for g in g_sel:
+            add_imputation_nodes(g, q_desc)
+
+    q_diagram = compose_all(g_sel)
+
+    if merge_nodes:
+        add_merge_nodes(q_diagram)
+
+    if prune:
+        assert tgt_att is not None, "If you prune, you need to provide tgt_att"
+        q_targ = np.where(tgt_att)[0]
+        _prune(q_diagram, q_targ)
+
+    if test:
+        try:
+            cycles = find_cycle(q_diagram)
+            msg = """
+            Found a cycle!
+            Cycle was: {}
+            """.format(
+                cycles
+            )
+            raise ValueError(msg)
+        except NetworkXNoCycle:
+            pass
+
+    q_diagram.graph["desc_ids"] = get_ids(q_diagram, kind="desc")
+    q_diagram.graph["targ_ids"] = get_ids(q_diagram, kind="targ")
+
+    return q_diagram
+
+
 def _prune(g, tgt_nodes=None):
     msg = """
     tgt_nodes:          {}
@@ -455,44 +612,4 @@ def _prune(g, tgt_nodes=None):
     nodes_to_remove = [n for n in g.nodes if n not in retain_nodes]
     for n in nodes_to_remove:
         g.remove_node(n)
-
-    return g
-
-
-def _pick(criteria, n=1, random_state=997):
-    """
-    Interpret an array of appropriateness scores as a distribution
-    corresponding to the probability of a certain model being selected.
-
-
-    Parameters
-    ----------
-    criteria:   list
-                Array that quantifies how likely a pick should be.
-    n:          int
-                Number of picks
-
-    Returns
-    -------
-    picks:      np.ndarray
-                List of indices that were picked
-    """
-
-    np.random.seed(random_state)
-    criteria += abs(np.min([0, np.min(criteria)]))  # Shift in case of negative values
-    norm = np.linalg.norm(criteria, 1)
-
-    if norm > 0:
-        criteria = criteria / norm
-    else:
-        msg = """
-        Not a single appropriate model was found, therefore
-        making an arbitrary choice.
-        """
-        warnings.warn(msg)
-        # If you cannot be right, be arbitrary
-        criteria = [1 / len(criteria) for i in criteria]
-
-    draw = np.random.multinomial(1, criteria, size=n)
-    picks = np.where(draw == 1)[1]
-    return picks
+    return

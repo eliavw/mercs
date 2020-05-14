@@ -186,8 +186,6 @@ class Mercs(object):
             random_state=random_state
         )
 
-        print(mixed_algorithm)
-
         # Add MixedRandomForest configuration if the algorithm has been selected
         if mixed_algorithm:
             self.params["mixed_algorithm"] = mixed_algorithm
@@ -291,6 +289,7 @@ class Mercs(object):
         # N.b.: `random state` parameter is in `self.sel_cfg`
         if m_codes is None:
             generate_mixed_codes = True if self.mix_cfg else False
+            generate_mixed_codes = False
             self.m_codes = self.selection_algorithm(self.metadata, generate_mixed_codes, **self.sel_cfg)
         else:
             self.m_codes = m_codes
@@ -795,54 +794,6 @@ class Mercs(object):
             filtered_nodes.append(n)
         filtered_nodes = list(reversed(filtered_nodes))
         return filtered_nodes
-
-    # Legacy (TODO: delete when I am sure they can go)
-    def predict_old(
-            self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs
-    ):
-        # Update configuration if necessary
-        if q_code is None:
-            q_code = self._default_q_code()
-
-        if prediction_algorithm is not None:
-            reuse = False
-            self._reconfig_prediction(
-                prediction_algorithm=prediction_algorithm, **kwargs
-            )
-
-        # Adjust data
-        tic_prediction = default_timer()
-        self.q_code = q_code
-        self.q_desc_ids, self.q_targ_ids, _ = code_to_query(
-            self.q_code, return_list=True
-        )
-
-        # Make query-diagram
-        self.q_diagram = self.prediction_algorithm(
-            self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
-        )
-
-        toc_prediction = default_timer()
-
-        tic_dask = default_timer()
-
-        toc_dask = default_timer()
-
-        tic_compute = default_timer()
-        res = self.q_model.predict.compute()
-        toc_compute = default_timer()
-
-        # Diagnostics
-        self.model_data["prd_time"] = toc_prediction - tic_prediction
-        self.model_data["dsk_time"] = toc_dask - tic_dask
-        self.model_data["cmp_time"] = toc_compute - tic_compute
-        self.model_data["inf_time"] = toc_compute - tic_prediction
-        self.model_data["ratios"] = (
-            self.model_data["prd_time"] / self.model_data["inf_time"],
-            self.model_data["dsk_time"] / self.model_data["inf_time"],
-            self.model_data["cmp_time"] / self.model_data["inf_time"],
-        )
-        return res
 
     def _update_g_list(self):
         types = self._get_types(self.metadata)
