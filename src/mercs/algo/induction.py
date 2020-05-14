@@ -240,6 +240,13 @@ def _build_parameters(
 
     Returns:
         parameters: list of the model parameters
+            - data: training data
+            - desc_ids: descriptive parameters
+            - targ_ids: target parameters
+            - learner: learner algorithm
+            - out_kind: output data type(nominal, numeric, mixed)
+            - metric: performance metric
+            - kwargs: model kwargs
 
     """
     parameters = []
@@ -255,10 +262,12 @@ def _build_parameters(
             metric = r2_score
             kwargs = regressor_kwargs.copy()  # Copy is essential
         else:
-            msg = """
-            Cannot learn mixed (i.e. nominal+numeric) models
-            """
-            raise ValueError(msg)
+            # Case when target ids contain both numerical and nominal data
+            # TODO: modify m_code generator (selection.py)
+            learner = mixed
+            out_kind = "mixed"
+            metric = None
+            kwargs = mixed_kwargs.copy()
 
         kwargs["random_state"] = random_states[idx]
         kwargs["calculation_method_feature_importances"] = calculation_method_feature_importances
