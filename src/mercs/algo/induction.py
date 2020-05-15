@@ -386,34 +386,6 @@ def _add_categorical_features_to_kwargs(learner, desc_ids, nominal_attributes, k
     return kwargs
 
 
-def _score_model(metric, y_test, y_pred, multi_target):
-    try:
-        performance = _calc_performance(y_test, y_pred, metric, multi_target)
-    except ValueError:
-        mean = np.nanmean(y_pred)
-        if not np.isfinite(mean):
-            warnings.warn(
-                """We have a model that cannot solve anything. Something shady might be going on."""
-            )
-            performance = 0
-        else:
-            y_pred[np.isnan(y_pred)] = mean
-            assert np.all(np.isfinite(y_pred))
-            performance = _calc_performance(y_test, y_pred, metric, multi_target)
-
-    return performance
-
-
-def _calc_performance(y_test, y_pred, metric, multi_target):
-    if multi_target:
-        performance = [
-            metric(y_test[:, i], y_pred[:, i]) for i in range(y_test.shape[1])
-        ]
-    else:
-        performance = metric(y_test, y_pred)
-    return performance
-
-
 def _get_cat_features(desc_ids, nominal_ids):
     cat_features = np.where(
         np.in1d(np.array(list(desc_ids)), np.array(list(nominal_ids)))
