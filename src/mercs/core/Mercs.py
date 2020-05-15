@@ -16,8 +16,8 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from ..algo import (
     imputation,
     induction,
+    inference_legacy,
     inference,
-    inference_v3,
     selection,
     vector_prediction,
     evaluation,
@@ -115,9 +115,9 @@ class Mercs(object):
     )
 
     inference_algorithms = dict(
-        base=inference.base_inference_algorithm,
-        dask=inference_v3.inference_algorithm,
-        own=inference_v3.inference_algorithm,
+        base=inference.inference_algorithm,
+        dask=inference.inference_algorithm,
+        legacy=inference_legacy.base_inference_algorithm,
     )
 
     imputer_algorithms = dict(
@@ -165,7 +165,7 @@ class Mercs(object):
             classifier_algorithm="DT",
             regressor_algorithm="DT",
             prediction_algorithm="mi",
-            inference_algorithm="own",
+            inference_algorithm="base",
             imputer_algorithm="default",
             evaluation_algorithm="default",
             mixed_algorithm=None,
@@ -618,7 +618,7 @@ class Mercs(object):
         self.configuration["prediction"] = self.prd_cfg
         self._update_config(**kwargs)
 
-    def _reconfig_inference(self, inference_algorithm="own", **kwargs):
+    def _reconfig_inference(self, inference_algorithm="base", **kwargs):
         self.inference_algorithm = self.inference_algorithms[inference_algorithm]
 
         self.inf_cfg = self._default_config(self.inference_algorithm)

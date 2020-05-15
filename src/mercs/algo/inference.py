@@ -1,267 +1,226 @@
-from functools import partial
-
-import networkx as nx
 import numpy as np
-from dask import delayed
 
 from ..utils.inference_tools import (
+    dummy_array,
     pad_proba,
     select_nominal,
     select_numeric,
 )
 
-from ..composition import o, x
-from ..graph.network import get_ids
-from ..utils import debug_print
 
-VERBOSITY = 0
+# Main algorithm
+def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
+    """Add inference information to graph g
+    
+    Arguments:
+        g {[type]} -- [description]
+        m_list {[type]} -- [description]
+        i_list {[type]} -- [description]
+        c_list {[type]} -- [description]
+        data {[type]} -- [description]
+        nominal_ids {[type]} -- [description]
+    
+    Raises:
+        ValueError: [description]
+    
+    Returns:
+        [type] -- [description]
+    """
 
+    _data_node = lambda k, n: k == "D"
+    _model_node = lambda k, n: k == "M"
+    _imputation_node = lambda k, n: k == "I"
+    _composite_node = lambda k, n: k == "C"
 
-def base_inference_algorithm(g):
-    # Convert the graph to its functions
-    sorted_nodes = list(nx.topological_sort(g))
+    nb_rows, _ = data.shape
 
-    msg = """
-    sorted_nodes:    {}
-    """.format(
-        sorted_nodes
-    )
-    debug_print(msg, level=1, V=VERBOSITY)
-    functions = {}
-    q_desc_ids = list(get_ids(g, kind="desc"))
+    g_desc_ids = list(g.desc_ids)
 
-    for node_name in sorted_nodes:
-        node = g.nodes(data=True)[node_name]
-
-        if node.get("kind", None) == "data":
-            if len(nx.ancestors(g, node_name)) == 0:
-                functions[node_name] = select_numeric(q_desc_ids.index(node["idx"]))
-            else:
-                # Select the relevant output
-                previous_node = [t[0] for t in g.in_edges(node_name)][0]
-                previous_t_idx = g.nodes[previous_node]["tgt"]
-                relevant_idx = previous_t_idx.index(node["idx"])
-
-                functions[node_name] = o(
-                    select_numeric(relevant_idx), functions[previous_node]
-                )
-
-        elif node.get("kind", None) == "imputation":
-            functions[node_name] = node["function"]
-
-        elif node.get("kind", None) == "model":
-            previous_nodes = [t[0] for t in g.in_edges(node_name)]
-            inputs = {g.nodes[n]["tgt"][0]: functions[n] for n in previous_nodes}
-            inputs = [
-                inputs[k] for k in sorted(inputs)
-            ]  # We need to sort to get the inputs in the correct order.
-
-            inputs = o(np.transpose, x(*inputs, return_type=np.array))
-
-            f = node["function"]
-            functions[node_name] = o(f, inputs)
-
-        elif node.get("kind", None) == "prob":
-            # Select the relevant output
-            prob_idx = node["idx"]
-            prob_classes = node["classes"]
-
-            previous_nodes = [t[0] for t in g.in_edges(node_name)]
-            previous_classes = [g.edges[t]["classes"] for t in g.in_edges(node_name)]
-            previous_t_idx = [g.nodes[n]["tgt"] for n in previous_nodes]
-
-            inputs = [
-                (functions[n], t, c)
-                for n, t, c in zip(previous_nodes, previous_t_idx, previous_classes)
-            ]
-
-            for idx, (f1, t, c) in enumerate(inputs):
-                f2 = o(select_nominal(t.index(prob_idx)), f1)
-
-                if len(c) < len(prob_classes):
-                    f2 = o(pad_proba(c, prob_classes), f2)
-
-                inputs[idx] = f2
-
-            f = partial(np.sum, axis=0)
-            functions[node_name] = o(f, x(*inputs, return_type=np.array))
-
-        elif node.get("kind", None) == "vote":
-            # Convert probabilistic votes to single prediction
-            previous_node = [t[0] for t in g.in_edges(node_name)][0]
-            functions[node_name] = o(node["function"], functions[previous_node])
-
-        elif node.get("kind", None) == "merge":
-            merge_idx = node["idx"]
-            previous_nodes = [t[0] for t in g.in_edges(node_name)]
-            previous_t_idx = [g.nodes[n]["tgt"] for n in previous_nodes]
-
-            inputs = [(functions[n], t) for n, t in zip(previous_nodes, previous_t_idx)]
-
-            inputs = [
-                o(select_numeric(t_idx.index(merge_idx)), f) for f, t_idx in inputs
-            ]
-            inputs = o(np.transpose, x(*inputs, return_type=np.array))
-
-            f = partial(np.mean, axis=1)
-            functions[node_name] = o(f, inputs)
-
-    return functions
-
-
-def dask_inference_algorithm(g, X=None, sorted_nodes=None):
-    if sorted_nodes is None:
-        sorted_nodes = list(nx.topological_sort(g))
-
-    functions = {}
-
-    q_desc_ids = list(get_ids(g, kind="desc"))
-
-    if X is None:
-        data = None
+    if data is not None:
+        g.data = data[:, g_desc_ids]
     else:
-        data = delayed(X[:, q_desc_ids])
+        g.data = None
 
-    for node_name in sorted_nodes:
-        kind = g.nodes[node_name]['kind']
-        node = g.nodes[node_name]
-
-        if kind in {'imputation'}:
-            actions[kind](node, data)
-        elif kind in {'data'}:
-            actions[kind](g, node, node_name, data, q_desc_ids)
-            functions[node_name] = node["dask"]
-        elif kind in {'prob'}:
-            actions[kind](g, node, node_name)
-            functions[node_name] = node["dask"]
+    for n in g.nodes():
+        if _data_node(*n):
+            in_degree = g.in_degree(n)
+            if in_degree == 0:
+                input_data_node(g, n, g_desc_ids)
+            elif in_degree > 0:
+                if n[1] in nominal_ids:
+                    nominal_data_node(g, n, m_list, c_list)
+                else:
+                    numeric_data_node(g, n, m_list, c_list)
+        elif _model_node(*n):
+            model_node(g, n, m_list)
+        elif _imputation_node(*n):
+            imputation_node(g, n, i_list, nb_rows)
+        elif _composite_node(*n):
+            composite_node(g, n, c_list)
         else:
-            actions[kind](g, node, node_name)
-
-    return functions
+            raise ValueError("Did not recognize node kind of {}".format(n))
 
 
-def dask_imputation_node(node, data):
-    node["dask"] = delayed(node["function"])(data)
-    return
+# Specific Nodes
+def input_data_node(g, node, g_desc_ids):
+    def f(rel_idx):
+        f1 = select_numeric(rel_idx)
+        return f1(g.data)
+
+    # New
+    g.nodes[node]["inputs"] = g_desc_ids.index(node[1])
+    g.nodes[node]["compute"] = f
 
 
-def dask_data_node(g, node, node_name, data, q_desc_ids):
-    n_parents = len(g.in_edges(node_name))
-
-    if n_parents == 0:
-        idx = node["idx"]
-        node["dask"] = delayed(select_numeric(q_desc_ids.index(idx)))(data)
-    else:
-        # Select the relevant output
-        parent_relative_idx, parent_function = _get_parents_of_data_node(g, node, node_name)
-        node["dask"] = delayed(select_numeric(parent_relative_idx))(parent_function)
-    return
-
-
-def dask_model_node(g, node, node_name):
-    # Collect input data
-    parent_functions = _get_parents_of_model_node(g, node)
-    collector = delayed(np.stack)(parent_functions, axis=1)
-
-    # Convert function
-    node["dask"] = delayed(node["predict"])(collector)
-
-    if "predict_proba" in node:
-        node["dask_proba"] = delayed(node["predict_proba"])(collector)
-
-    return
-
-
-def dask_prob_node(g, node, node_name):
-    # Parent nodes
-    parent_nodes = [s for s, t in g.in_edges(node_name)]
-
-    parent_functions = [g.nodes[n]["dask_proba"] for n in parent_nodes]
-    parent_targets = [g.nodes[n]["tgt"] for n in parent_nodes]
-    parent_classes = [g.edges[e]["classes"] for e in g.in_edges(node_name)]
-
-    inputs = zip(parent_functions, parent_targets, parent_classes)
-
-    # Incorporate extra step(s)
-    for idx, (f1, t, c) in enumerate(inputs):
-        f2 = delayed(select_nominal(t.index(node["idx"])))(f1)
-
-        if len(c) < len(node["classes"]):
-            f3 = delayed(pad_proba(c, node["classes"]))(f2)
-        else:
-            f3 = f2
-
-        # Overwrite parent functions
-        parent_functions[idx] = f3
-
-    # Collect everything in one single array
-    node["dask"] = delayed(partial(np.sum, axis=0))(parent_functions)
-    return
-
-
-def dask_vote_node(g, node, node_name):
-    parent_node = [s for s, t in g.in_edges(node_name)].pop()
-    parent_function = g.nodes[parent_node]["dask"]
-    classes = node["classes"]
-
+def imputation_node(g, node, i_list, nb_rows):
     # Build function
+    def f(n):
+        return i_list[node[1]].transform(dummy_array(n)).ravel()
+
+    # New
+    g.nodes[node]["inputs"] = nb_rows
+    g.nodes[node]["compute"] = f
+
+
+def numeric_data_node(g, node, m_list, c_list):
+    parents = _numeric_parents(g, m_list, c_list, node)
+
+    def f(parents):
+        collector = _numeric_inputs(g, parents)
+        return np.mean(collector, axis=0)
+
+    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["compute"] = f
+
+
+def nominal_data_node(g, node, m_list, c_list):
+    # New
+    parents = _nominal_parents(g, m_list, c_list, node)
+
+    classes = np.unique(np.hstack([c for _, c, _ in parents]))
+
     def vote(X):
         return classes.take(np.argmax(X, axis=1), axis=0)
 
-    node["dask"] = delayed(vote)(parent_function)
-    return
+    def F(parents):
+        collector = _nominal_inputs(g, parents, classes)
+        return np.sum(collector, axis=0)
+
+    def F2(parents):
+        return vote(F(parents))
+
+    g.nodes[node]["classes"] = classes
+    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["compute_proba"] = F
+    g.nodes[node]["compute"] = F2
 
 
-def dask_merge_node(g, node, node_name):
-    # Parent nodes
-    parent_nodes = [s for s, t in g.in_edges(node_name)]
+def model_node(g, node, m_list):
+    # New
+    parents = _model_parents(g, node)
 
-    parent_functions = [g.nodes[n]["dask"] for n in parent_nodes]
-    parent_targets = [g.nodes[n]["tgt"] for n in parent_nodes]
+    def f(parents):
+        X = _model_inputs(g, parents)
+        return m_list[node[1]].predict(X)
 
-    inputs = zip(parent_functions, parent_targets)
+    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["compute"] = f
 
-    # Incorporate extra step(s)
-    for idx, (f1, t) in enumerate(inputs):
-        f2 = delayed(select_numeric(t.index(node["idx"])))(f1)
-        parent_functions[idx] = f2
+    if hasattr(m_list[node[1]], "predict_proba"):
+        def f2(parents):
+            X = _model_inputs(g, parents)
+            return m_list[node[1]].predict_proba(X)
 
-    node["dask"] = delayed(partial(np.mean, axis=0))(parent_functions)
-    return
-
-
-actions = dict(
-    data=dask_data_node,
-    prob=dask_prob_node,
-    model=dask_model_node,
-    vote=dask_vote_node,
-    merge=dask_merge_node,
-    imputation=dask_imputation_node,
-)
+        g.nodes[node]["compute_proba"] = f2
 
 
-def _get_parents_of_data_node(g, node, node_name):
-    # It can only be one parent
-    parent_node = g.nodes[[s for s, t in g.in_edges(node_name)].pop()]
-
-    parent_relative_idx = parent_node["tgt"].index(node["idx"])
-    parent_function = parent_node["dask"]
-
-    return parent_relative_idx, parent_function
+def composite_node(g, node, c_list):
+    return model_node(g, node, c_list)
 
 
-def _get_parents_of_model_node(g, node_name):
-    parent_nodes = [s for s, t in g.in_edges(node_name)]
-    parent_indices = [g.nodes[n]["idx"] for n in parent_nodes]
+# Helpers - Function
+def compute(g, node, proba=False):
+    result = "result"
+    compute = "compute"
 
-    parent_functions = {idx: g.nodes[n]["dask"] for idx, n in zip(parent_indices, parent_nodes)}
-    parent_functions = [parent_functions[k] for k in sorted(parent_functions)]
+    if proba:
+        result += "_proba"
+        compute += "_proba"
 
-    return parent_functions
+    r = g.nodes[node].get(result, None)
+    if r is None:
+        i = g.nodes[node].get("inputs")
+        f = g.nodes[node].get(compute)
+        g.nodes[node][result] = f(i)
+        return g.nodes[node][result]
+    else:
+        return r
 
 
-def _get_parents_of_prob_node(g, node_name):
-    parent_nodes = [s for s, t in g.in_edges(node_name)]
-    parent_functions = [g.nodes[n]["dask"] for n in parent_nodes]
+def _nominal_inputs(g, parents, classes):
+    collector = [
+        select_nominal(idx)(compute(g, n, proba=True))
+        if len(c) == len(classes)
+        else pad_proba(c, classes)(select_nominal(idx)(compute(g, n, proba=True)))
+        for idx, c, n in parents
+    ]
+    return collector
 
-    return parent_functions
+
+def _numeric_inputs(g, parents):
+    collector = [select_numeric(idx)(compute(g, n)) for idx, n in parents]
+    return collector
+
+
+def _model_inputs(g, parents):
+    collector = [compute(g, n) for n in parents]
+    collector = np.stack(collector, axis=1)
+    return collector
+
+
+def _numeric_parents(g, m_list, c_list, node):
+    parents = [
+        (rel_idx(p_idx, node[1], k, m_list, c_list), (k, p_idx))
+        for k, p_idx in g.predecessors(node)
+    ]
+
+    return parents
+
+
+def _nominal_parents(g, m_list, c_list, node):
+    parents = [
+        (
+            rel_idx(p_idx, node[1], k, m_list, c_list),
+            classes(
+                p_idx, rel_idx(p_idx, node[1], k, m_list, c_list), k, m_list, c_list
+            ),
+            (k, p_idx),
+        )
+        for k, p_idx in g.predecessors(node)
+    ]
+
+    return parents
+
+
+def _model_parents(g, node):
+    idxs = {p_idx: (m, p_idx) for m, p_idx in g.predecessors(node)}
+
+    parents = [n for k, n in sorted(idxs.items())]
+
+    return parents
+
+
+def rel_idx(p_idx, n_idx, k, m_list, c_list):
+    if k == "M":
+        return m_list[p_idx].targ_ids.index(n_idx)
+    elif k == "C":
+        return c_list[p_idx].targ_ids.index(n_idx)
+    else:
+        return 0
+
+
+def classes(p_idx, r_idx, k, m_list, c_list):
+    if k == "M":
+        return m_list[p_idx].classes_[r_idx]
+    elif k == "C":
+        return c_list[p_idx].classes_[r_idx]
