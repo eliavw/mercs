@@ -1,11 +1,9 @@
 import itertools
 import warnings
-from functools import partial
 
 import numpy as np
 import shap
 from joblib import Parallel, delayed
-from sklearn.metrics import f1_score, r2_score
 from sklearn.preprocessing import normalize
 
 try:
@@ -246,7 +244,6 @@ def _build_parameters(
             - targ_ids: target parameters
             - learner: learner algorithm
             - out_kind: output data type(nominal, numeric, mixed)
-            - metric: performance metric
             - kwargs: model kwargs
 
     """
@@ -255,19 +252,15 @@ def _build_parameters(
         if set(targ_ids).issubset(nominal_attributes):
             learner = classifier
             out_kind = "nominal"
-            metric = partial(f1_score, average="macro")
             kwargs = classifier_kwargs.copy()  # Copy is essential
         elif set(targ_ids).issubset(numeric_attributes):
             learner = regressor
             out_kind = "numeric"
-            metric = r2_score
             kwargs = regressor_kwargs.copy()  # Copy is essential
         else:
             # Case when target ids contain both numerical and nominal data
             learner = mixed
             out_kind = "mixed"
-            # TODO: add metric?
-            metric = None
             kwargs = mixed_kwargs.copy()
 
         kwargs["random_state"] = random_states[idx]
@@ -278,7 +271,7 @@ def _build_parameters(
         )  # This is learner-specific
 
         # Learn a model for current desc_ids-targ_ids combo
-        args = (data, desc_ids, targ_ids, learner, out_kind, metric)
+        args = (data, desc_ids, targ_ids, learner, out_kind)
         parameters.append((args, kwargs))
 
     return parameters
