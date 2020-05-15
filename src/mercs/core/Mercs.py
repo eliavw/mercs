@@ -281,9 +281,6 @@ class Mercs(object):
         self.metadata = self._default_metadata(X)
         self._update_metadata(**kwargs)
 
-        if self.mix_cfg:
-            self.configuration["mixed"]["classification_targets"] = list(self.metadata["nominal_attributes"])
-
         self.i_list = self.imputer_algorithm(X, self.metadata.get("nominal_attributes"))
 
         # N.b.: 'random state' parameter is in 'self.sel_cfg'

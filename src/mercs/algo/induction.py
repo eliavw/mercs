@@ -24,11 +24,6 @@ try:
 except:
     WLC, WLR = None, None
 
-try:
-    from morfist import MixedRandomForest as MRF
-except:
-    MRF = None
-
 from ..composition.CanonicalModel import CanonicalModel
 from ..utils import code_to_query, get_i_o
 
@@ -253,17 +248,21 @@ def _build_parameters(
             learner = classifier
             out_kind = "nominal"
             kwargs = classifier_kwargs.copy()  # Copy is essential
+            kwargs["random_state"] = random_states[idx]
         elif set(targ_ids).issubset(numeric_attributes):
             learner = regressor
             out_kind = "numeric"
             kwargs = regressor_kwargs.copy()  # Copy is essential
+            kwargs["random_state"] = random_states[idx]
         else:
             # Case when target ids contain both numerical and nominal data
             learner = mixed
             out_kind = "mixed"
             kwargs = mixed_kwargs.copy()
+            kwargs["classification_targets"] = np.where(
+                np.array(list(nominal_attributes)) == np.array(targ_ids)
+            )[0].tolist()
 
-        kwargs["random_state"] = random_states[idx]
         kwargs["calculation_method_feature_importances"] = calculation_method_feature_importances
 
         kwargs = _add_categorical_features_to_kwargs(
@@ -331,10 +330,6 @@ def _learn_model(
             categorical_feature = kwargs.pop("categorical_feature")
             model = learner(**kwargs)
             model.fit(i, o, categorical_feature=categorical_feature)
-        elif learner in {MRF}:
-            kwargs.pop("random_state")
-            model = learner(**kwargs)
-            model.fit(i, o)
         else:
             model = learner(**kwargs)
             model.fit(i, o)

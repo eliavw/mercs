@@ -5,20 +5,25 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 try:
     from catboost import CatBoostClassifier as CBC
-    from catboost import CatBoostRegressor as CBR
 except:
-    CBC, CBR = None, None
+    CBC = None
+
+try:
+    from morfist import MixedRandomForest as MRF
+except:
+    MRF = None
 
 
 class CanonicalModel(object):
     """
     Canonical Attributes:
-        - desc_ids, {1,2}
-        - targ_ids, {3}
-        - out_kind, {'numerical', 'nominal', 'mix'}
+        - model: learning algorithm
+        - desc_ids: ids of the descriptive attributes. E.g. {1,2}
+        - targ_ids: ids of the target attributes. E.g. {3}
+        - out_kind: output data type. {'numerical', 'nominal', 'mixed'}
         - feature_importances
-        - classes_,  list of arrays of shape n_classes
-        - n_classes_, list of ints
+        - classes_:  list of arrays of shape n_classes
+        - n_classes_: list of ints
 
     Canonical Methods:
         - predict, np.ndarray, shape = nb_instances X nb_desc_ids
@@ -38,11 +43,14 @@ class CanonicalModel(object):
 
         if hasattr(model, 'shap_values_'):
             self.feature_importances_ = self.model.shap_values_
+        elif isinstance(model, MRF):
+            # FIXME: the correct importances should be calculated by morfist
+            self.feature_importances_ = [1 / len(desc_ids) for _ in desc_ids]
         else:
             self.feature_importances_ = self.model.feature_importances_
 
         # Canonization of prediction-related stuff
-        if self.out_kind in {"nominal", "mix"}:
+        if self.out_kind in {"nominal"}:
             self.predict = self.model.predict
             self.predict_proba = self.model.predict_proba
             self.classes_ = self.model.classes_
@@ -58,24 +66,25 @@ class CanonicalModel(object):
                 self.classes_ = [self.classes_]
 
             if single_target_sklearn_classifier(model):
+                # TODO: fill this
                 pass
-                # self.predict = canonical_predict(self.model.predict)
-                # self.predict_proba = canonical_predict_proba(self.model.predict_proba)
-                # self.classes_ = [self.model.classes_]
-                # self.n_classes_ = [self.model.n_classes_]
 
         elif self.out_kind in {"numeric"}:
             self.predict = self.model.predict
 
-            # if single_target_sklearn_regressor(model):
-            #    self.predict = canonical_predict(self.model.predict)
+        elif self.out_kind in {"mixed"}:
+            self.predict = self.model.predict
+            self.predict_proba = self.model.predict_proba
+            self.classes_ = []
+            self.n_classes_ = []
+            for i in range(len(self.model.classification_labels)):
+                self.classes_.append(self.model.classification_labels[i + 1])
+                self.n_classes_.append(len(self.model.classification_labels[i + 1]))
 
         else:
             raise NotImplementedError(
                 "I do not recognize this kind of model: {}".format(out_kind)
             )
-
-        return
 
     def __len__(self):
         """Returns the number of estimators in the ensemble."""
