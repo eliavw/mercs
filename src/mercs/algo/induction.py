@@ -9,12 +9,6 @@ from sklearn.metrics import f1_score, r2_score
 from sklearn.preprocessing import normalize
 
 try:
-    from xgboost import XGBClassifier as XGBC
-    from xgboost import XGBRegressor as XGBR
-except:
-    XGBC, XGBR = None, None
-
-try:
     from lightgbm import LGBMClassifier as LGBMC
     from lightgbm import LGBMRegressor as LGBMR
 except:
@@ -31,6 +25,11 @@ try:
     from wekalearn import RandomForestRegressor as WLR
 except:
     WLC, WLR = None, None
+
+try:
+    from morfist import MixedRandomForest as MRF
+except:
+    MRF = None
 
 from ..composition.CanonicalModel import CanonicalModel
 from ..utils import code_to_query, get_i_o
@@ -162,8 +161,10 @@ def expand_induction_algorithm(
         metadata,
         classifier,
         regressor,
+        None,
         classifier_kwargs,
         regressor_kwargs,
+        None,
         random_state=random_state,
         n_jobs=n_jobs,
         verbose=verbose,
@@ -263,9 +264,9 @@ def _build_parameters(
             kwargs = regressor_kwargs.copy()  # Copy is essential
         else:
             # Case when target ids contain both numerical and nominal data
-            # TODO: modify m_code generator (selection.py)
             learner = mixed
             out_kind = "mixed"
+            # TODO: add metric?
             metric = None
             kwargs = mixed_kwargs.copy()
 
@@ -294,19 +295,33 @@ def _learn_model(
         calculation_method_feature_importances="default",
         **kwargs
 ):
-    """
-    Learn a model from the data.
+    """Learn a single model from the data.
 
     The arguments of this function determine specifics on which task,
     which learner etc.
 
     Model is a machine learning method that has a .fit() method.
+
+    Args:
+        data: training data
+        desc_ids: ids of the descriptive attributes
+        targ_ids: ids of the target attributes
+        learner: learning algorithm
+        out_kind: type of the ouput data (numeric, nominal or mixed)
+        filter_nan: indicates if NaN values should be filtered
+        min_nb_samples: minimum number of samples
+        calculation_method_feature_importances:
+        **kwargs: keyword argument
+
+    Returns:
+        model: the learned model
     """
     assert learner is not None
 
     i, o = get_i_o(data, desc_ids, targ_ids, filter_nan=filter_nan)
 
     if i.shape[0] < min_nb_samples:
+        # If not enough samples, the model is not fitted
         return None
     else:
         # Pre-processing
@@ -323,6 +338,10 @@ def _learn_model(
             categorical_feature = kwargs.pop("categorical_feature")
             model = learner(**kwargs)
             model.fit(i, o, categorical_feature=categorical_feature)
+        elif learner in {MRF}:
+            kwargs.pop("random_state")
+            model = learner(**kwargs)
+            model.fit(i, o)
         else:
             model = learner(**kwargs)
             model.fit(i, o)

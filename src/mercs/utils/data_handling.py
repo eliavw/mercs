@@ -1,6 +1,19 @@
 import numpy as np
 
+
 def get_i_o(data, desc_ids, targ_ids, filter_nan=True):
+    """ Splits data into X and y sets before fitting the model
+
+    Args:
+        data: training data
+        desc_ids: descriptive attributes
+        targ_ids: target attributes
+        filter_nan: indicates if NaN values should be filtered
+
+    Returns:
+        i: X values to be passed to the model
+        o: y values to be passed to the model
+    """
     if filter_nan:
         i_o = data[:, desc_ids+targ_ids]
 

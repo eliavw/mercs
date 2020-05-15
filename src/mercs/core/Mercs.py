@@ -286,10 +286,9 @@ class Mercs(object):
 
         self.i_list = self.imputer_algorithm(X, self.metadata.get("nominal_attributes"))
 
-        # N.b.: `random state` parameter is in `self.sel_cfg`
+        # N.b.: 'random state' parameter is in 'self.sel_cfg'
         if m_codes is None:
-            generate_mixed_codes = True if self.mix_cfg else False
-            generate_mixed_codes = False
+            generate_mixed_codes = True if self.mixed_algorithm else False
             self.m_codes = self.selection_algorithm(self.metadata, generate_mixed_codes, **self.sel_cfg)
         else:
             self.m_codes = m_codes
