@@ -3,7 +3,7 @@ from sklearn.preprocessing import maxabs_scale, minmax_scale
 from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.model_selection import train_test_split
 
-from ..utils.inference_tools import _dummy_array
+from ..utils.inference_tools import dummy_array
 from ..utils import TARG_ENCODING, get_i_o
 
 
@@ -105,7 +105,7 @@ def _imputer_evaluation(X, i_list):
         _, o = get_i_o(X, [], [i_idx], filter_nan=True)
 
         y_true = o
-        y_pred = imp.transform(_dummy_array(len(o))).ravel()
+        y_pred = imp.transform(dummy_array(len(o))).ravel()
 
         metric = _select_metric(imp)
         imp.score = _calc_performance(y_true, y_pred, metric)

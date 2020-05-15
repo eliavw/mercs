@@ -1,13 +1,14 @@
 import numpy as np
 
+
 # Helpers - Data Handling
-def _dummy_array(nb_rows):
+def dummy_array(nb_rows):
     a = np.empty((nb_rows, 1))
     a.fill(np.nan)
     return a
 
 
-def _pad_proba(classes, all_classes):
+def pad_proba(classes, all_classes):
     idx = _map_classes(classes, all_classes)
 
     def pad(X):
@@ -24,7 +25,7 @@ def _map_classes(classes, all_classes):
     return sorted_idx[matches]
 
 
-def _select_numeric(idx):
+def select_numeric(idx):
     def select(X):
         if X.ndim == 2:
             return X.take(idx, axis=1)
@@ -34,7 +35,7 @@ def _select_numeric(idx):
     return select
 
 
-def _select_nominal(idx):
+def select_nominal(idx):
     def select(X):
         if isinstance(X, list):
             return X[idx]

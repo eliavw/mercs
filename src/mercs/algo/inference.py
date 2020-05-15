@@ -4,6 +4,12 @@ import networkx as nx
 import numpy as np
 from dask import delayed
 
+from ..utils.inference_tools import (
+    pad_proba,
+    select_nominal,
+    select_numeric,
+)
+
 from ..composition import o, x
 from ..graph.network import get_ids
 from ..utils import debug_print
@@ -29,7 +35,7 @@ def base_inference_algorithm(g):
 
         if node.get("kind", None) == "data":
             if len(nx.ancestors(g, node_name)) == 0:
-                functions[node_name] = _select_numeric(q_desc_ids.index(node["idx"]))
+                functions[node_name] = select_numeric(q_desc_ids.index(node["idx"]))
             else:
                 # Select the relevant output
                 previous_node = [t[0] for t in g.in_edges(node_name)][0]
@@ -37,7 +43,7 @@ def base_inference_algorithm(g):
                 relevant_idx = previous_t_idx.index(node["idx"])
 
                 functions[node_name] = o(
-                    _select_numeric(relevant_idx), functions[previous_node]
+                    select_numeric(relevant_idx), functions[previous_node]
                 )
 
         elif node.get("kind", None) == "imputation":
@@ -70,10 +76,10 @@ def base_inference_algorithm(g):
             ]
 
             for idx, (f1, t, c) in enumerate(inputs):
-                f2 = o(_select_nominal(t.index(prob_idx)), f1)
+                f2 = o(select_nominal(t.index(prob_idx)), f1)
 
                 if len(c) < len(prob_classes):
-                    f2 = o(_pad_proba(c, prob_classes), f2)
+                    f2 = o(pad_proba(c, prob_classes), f2)
 
                 inputs[idx] = f2
 
@@ -93,7 +99,7 @@ def base_inference_algorithm(g):
             inputs = [(functions[n], t) for n, t in zip(previous_nodes, previous_t_idx)]
 
             inputs = [
-                o(_select_numeric(t_idx.index(merge_idx)), f) for f, t_idx in inputs
+                o(select_numeric(t_idx.index(merge_idx)), f) for f, t_idx in inputs
             ]
             inputs = o(np.transpose, x(*inputs, return_type=np.array))
 
@@ -144,11 +150,11 @@ def dask_data_node(g, node, node_name, data, q_desc_ids):
 
     if n_parents == 0:
         idx = node["idx"]
-        node["dask"] = delayed(_select_numeric(q_desc_ids.index(idx)))(data)
+        node["dask"] = delayed(select_numeric(q_desc_ids.index(idx)))(data)
     else:
         # Select the relevant output
         parent_relative_idx, parent_function = _get_parents_of_data_node(g, node, node_name)
-        node["dask"] = delayed(_select_numeric(parent_relative_idx))(parent_function)
+        node["dask"] = delayed(select_numeric(parent_relative_idx))(parent_function)
     return
 
 
@@ -178,10 +184,10 @@ def dask_prob_node(g, node, node_name):
 
     # Incorporate extra step(s)
     for idx, (f1, t, c) in enumerate(inputs):
-        f2 = delayed(_select_nominal(t.index(node["idx"])))(f1)
+        f2 = delayed(select_nominal(t.index(node["idx"])))(f1)
 
         if len(c) < len(node["classes"]):
-            f3 = delayed(_pad_proba(c, node["classes"]))(f2)
+            f3 = delayed(pad_proba(c, node["classes"]))(f2)
         else:
             f3 = f2
 
@@ -217,7 +223,7 @@ def dask_merge_node(g, node, node_name):
 
     # Incorporate extra step(s)
     for idx, (f1, t) in enumerate(inputs):
-        f2 = delayed(_select_numeric(t.index(node["idx"])))(f1)
+        f2 = delayed(select_numeric(t.index(node["idx"])))(f1)
         parent_functions[idx] = f2
 
     node["dask"] = delayed(partial(np.mean, axis=0))(parent_functions)
@@ -232,44 +238,6 @@ actions = dict(
     merge=dask_merge_node,
     imputation=dask_imputation_node,
 )
-
-
-# Helpers
-def _pad_proba(classes, all_classes):
-    idx = _map_classes(classes, all_classes)
-
-    def pad(X):
-        R = np.zeros((X.shape[0], len(all_classes)))
-        R[:, idx] = X
-        return R
-
-    return pad
-
-
-def _map_classes(classes, all_classes):
-    sorted_idx = np.argsort(all_classes)
-    matches = np.searchsorted(all_classes[sorted_idx], classes)
-    return sorted_idx[matches]
-
-
-def _select_numeric(idx):
-    def select(X):
-        if X.ndim == 2:
-            return X.take(idx, axis=1)
-        else:
-            return X
-
-    return select
-
-
-def _select_nominal(idx):
-    def select(X):
-        if isinstance(X, list):
-            return X[idx]
-        elif isinstance(X, np.ndarray):
-            return X
-
-    return select
 
 
 def _get_parents_of_data_node(g, node, node_name):

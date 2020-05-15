@@ -1,10 +1,10 @@
 import numpy as np
 
 from ..utils.inference_tools import (
-    _dummy_array,
-    _pad_proba,
-    _select_nominal,
-    _select_numeric,
+    dummy_array,
+    pad_proba,
+    select_nominal,
+    select_numeric,
 )
 
 
@@ -64,7 +64,7 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
 # Specific Nodes
 def input_data_node(g, node, g_desc_ids):
     def f(rel_idx):
-        f1 = _select_numeric(rel_idx)
+        f1 = select_numeric(rel_idx)
         return f1(g.data)
 
     # New
@@ -75,7 +75,7 @@ def input_data_node(g, node, g_desc_ids):
 def imputation_node(g, node, i_list, nb_rows):
     # Build function
     def f(n):
-        return i_list[node[1]].transform(_dummy_array(n)).ravel()
+        return i_list[node[1]].transform(dummy_array(n)).ravel()
 
     # New
     g.nodes[node]["inputs"] = nb_rows
@@ -159,16 +159,16 @@ def compute(g, node, proba=False):
 
 def _nominal_inputs(g, parents, classes):
     collector = [
-        _select_nominal(idx)(compute(g, n, proba=True))
+        select_nominal(idx)(compute(g, n, proba=True))
         if len(c) == len(classes)
-        else _pad_proba(c, classes)(_select_nominal(idx)(compute(g, n, proba=True)))
+        else pad_proba(c, classes)(select_nominal(idx)(compute(g, n, proba=True)))
         for idx, c, n in parents
     ]
     return collector
 
 
 def _numeric_inputs(g, parents):
-    collector = [_select_numeric(idx)(compute(g, n)) for idx, n in parents]
+    collector = [select_numeric(idx)(compute(g, n)) for idx, n in parents]
     return collector
 
 
