@@ -11,13 +11,10 @@ EPSILON = 0.00001
 # Strategies
 def mi(
         m_codes,
-        m_fimps,
-        m_score,
         q_code,
         a_src=None,
         a_tgt=None,
         m_avl=None,
-        random_state=997,
 ):
     # Init
     m_avl = _init_m_avl(m_codes, m_avl=m_avl)
@@ -45,7 +42,6 @@ def mrai(
         stepsize=0.1,
         any_target=False,
         picking_function="greedy",
-        thresholds=None,
         random_state=997,
 ):
     # Init
@@ -56,13 +52,10 @@ def mrai(
     # Filtering
     m_flt = mi(
         m_codes,
-        m_fimps,
-        m_score,
         None,
         a_src=a_src,
         a_tgt=a_tgt,
         m_avl=m_avl,
-        random_state=random_state,
     )
 
     if m_flt is None:
@@ -102,14 +95,11 @@ def it(
         q_code,
         m_avl=None,
         max_steps=4,
-        init_threshold=1.0,
-        stepsize=0.1,
         picking_function="greedy",
         random_state=997,
 ):
     m_sel = []
     m_avl = _init_m_avl(m_codes, m_avl=m_avl)
-    thresholds = _init_thresholds(init_threshold, stepsize)
 
     any_target = True
     q_desc, q_targ, q_miss = code_to_query(q_code)
@@ -134,7 +124,6 @@ def it(
             a_tgt=a_tgt,
             m_avl=m_avl,
             any_target=any_target,
-            thresholds=thresholds,
             picking_function=picking_function,
             random_state=random_state,
         )
@@ -166,8 +155,6 @@ def rw(
         m_avl=None,
         nb_walks=5,
         max_steps=4,
-        init_threshold=1.0,
-        stepsize=0.1,
         straight=True,
         picking_function="stochastic",
         random_state=997,
@@ -180,8 +167,6 @@ def rw(
             q_code,
             m_avl=m_avl,
             max_steps=max_steps,
-            init_threshold=init_threshold,
-            stepsize=stepsize,
             straight=straight,
             picking_function=picking_function,
             random_state=random_state + i * 997,  # Otherwise you do identical walks!
@@ -199,15 +184,12 @@ def walk(
         q_code,
         m_avl=None,
         max_steps=4,
-        init_threshold=1.0,
-        stepsize=0.1,
         straight=True,
         picking_function="stochastic",
         random_state=997,
 ):
     m_sel = []
     m_avl = _init_m_avl(m_codes, m_avl=m_avl)
-    thresholds = _init_thresholds(init_threshold, stepsize)
 
     any_target = True
     q_desc, q_targ, q_miss = code_to_query(q_code)
@@ -225,7 +207,6 @@ def walk(
             a_tgt=a_tgt,
             m_avl=m_avl,
             any_target=any_target,
-            thresholds=thresholds,
             picking_function=picking_function,
             random_state=random_state + step,
         )
@@ -280,6 +261,7 @@ def _all_pick(crit, **kwargs):
 
 
 def _greedy_pick(crit, thresholds=None, **kwargs):
+    m_sel = None
     for thr in thresholds:
         m_sel = np.where(crit >= thr)[0]
 
