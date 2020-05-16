@@ -64,6 +64,20 @@ except:
     MRF = None
 
 
+def raise_recursion_error(q_diagram):
+    cycle = find_cycle(q_diagram, orientation="original")
+    msg = """
+                Topological sort failed, investigate diagram to debug.
+                
+                I will never be able to squeeze a prediction out of a diagram with a loop.
+                
+                Cycle was:  {}
+                """.format(
+        cycle
+    )
+    raise RecursionError(msg)
+
+
 class Mercs(object):
     delimiter = "_"
 
@@ -116,7 +130,7 @@ class Mercs(object):
 
     inference_algorithms = dict(
         base=inference.inference_algorithm,
-        dask=inference.inference_algorithm,
+        dask=inference_legacy.dask_inference_algorithm,
         legacy=inference_legacy.base_inference_algorithm,
     )
 
@@ -468,20 +482,11 @@ class Mercs(object):
         q_diagram = compose_all(walks)
         filtered_nodes = self.filter_nodes(q_diagram)
 
+        assert isinstance(self.inference_algorithm, inference_legacy.dask_inference_algorithm)
         try:
             self.inference_algorithm(q_diagram, sorted_nodes=filtered_nodes)
         except NetworkXUnfeasible:
-            cycle = find_cycle(q_diagram, orientation="original")
-            msg = """
-            Topological sort failed, investigate diagram to debug.
-            
-            I will never be able to squeeze a prediction out of a diagram with a loop.
-            
-            Cycle was:  {}
-            """.format(
-                cycle
-            )
-            raise RecursionError(msg)
+            raise_recursion_error(q_diagram)
 
         q_model = CompositeModel(q_diagram)
         return q_diagram, q_model
@@ -490,25 +495,15 @@ class Mercs(object):
 
         self._add_imputer_function(q_diagram)
 
+        assert isinstance(self.inference_algorithm, inference_legacy.dask_inference_algorithm)
         try:
             self.inference_algorithm(q_diagram, X=X)
         except NetworkXUnfeasible:
-            cycle = find_cycle(q_diagram, orientation="original")
-            msg = """
-            Topological sort failed, investigate diagram to debug.
-            
-            I will never be able to squeeze a prediction out of a diagram with a loop.
-            
-            Cycle was:  {}
-            """.format(
-                cycle
-            )
-            raise RecursionError(msg)
+            raise_recursion_error(q_diagram)
 
         q_model = CompositeModel(q_diagram)
         return q_model
 
-    # Filter
     def _filter_m_list_m_codes(self):
         fail_m_idxs = [i for i, m in enumerate(self.m_list) if m is None]
         self.m_codes = np.delete(self.m_codes, fail_m_idxs, axis=0)
