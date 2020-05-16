@@ -12,7 +12,7 @@ def test_init():
 
     clf = Mercs(
         selection_algorithm="base",
-        inference_algorithm="own",
+        inference_algorithm="base",
         prediction_algorithm="it",
         mixed_algorithm="morfist",
         max_depth=4,
@@ -27,21 +27,21 @@ def test_init():
 
     clf.fit(train, nominal_attributes=nominal_ids)
 
-    # for idx, m in enumerate(clf.m_list):
-    #     msg = """
-    #     Model with index: {}
-    #     {}
-    #     """.format(idx, m.model)
-    #     print(msg)
-    #
-    # for m_idx, m in enumerate(clf.m_list):
-    #     msg = """
-    #     Tree with id:          {}
-    #     has source attributes: {}
-    #     has target attributes: {},
-    #     and predicts {} attributes
-    #     """.format(m_idx, m.desc_ids, m.targ_ids, m.out_kind)
-    #     print(msg)
+    for idx, m in enumerate(clf.m_list):
+        msg = """
+        Model with index: {}
+        {}
+        """.format(idx, m.model)
+        print(msg)
+
+    for m_idx, m in enumerate(clf.m_list):
+        msg = """
+        Tree with id:          {}
+        has source attributes: {}
+        has target attributes: {},
+        and predicts {} attributes
+        """.format(m_idx, m.desc_ids, m.targ_ids, m.out_kind)
+        print(msg)
 
     # Single target
     q_code = np.zeros(clf.m_codes[0].shape[0], dtype=int)
