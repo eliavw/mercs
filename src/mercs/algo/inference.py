@@ -27,10 +27,10 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
         [type] -- [description]
     """
 
-    _data_node = lambda k, n: k == "D"
-    _model_node = lambda k, n: k == "M"
-    _imputation_node = lambda k, n: k == "I"
-    _composite_node = lambda k, n: k == "C"
+    def _data_node(k): return k == "D"
+    def _model_node(k): return k == "M"
+    def _imputation_node(k): return k == "I"
+    def _composite_node(k): return k == "C"
 
     nb_rows, _ = data.shape
 
@@ -42,7 +42,7 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
         g.data = None
 
     for n in g.nodes():
-        if _data_node(*n):
+        if _data_node(n[0]):
             in_degree = g.in_degree(n)
             if in_degree == 0:
                 input_data_node(g, n, g_desc_ids)
@@ -51,11 +51,11 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
                     nominal_data_node(g, n, m_list, c_list)
                 else:
                     numeric_data_node(g, n, m_list, c_list)
-        elif _model_node(*n):
+        elif _model_node(n[0]):
             model_node(g, n, m_list)
-        elif _imputation_node(*n):
+        elif _imputation_node(n[0]):
             imputation_node(g, n, i_list, nb_rows)
-        elif _composite_node(*n):
+        elif _composite_node(n[0]):
             composite_node(g, n, c_list)
         else:
             raise ValueError("Did not recognize node kind of {}".format(n))
@@ -220,6 +220,7 @@ def rel_idx(p_idx, n_idx, k, m_list, c_list):
 
 
 def classes(p_idx, r_idx, k, m_list, c_list):
+    # FIXME: breaks for mixed trees. list index out of range
     if k == "M":
         return m_list[p_idx].classes_[r_idx]
     elif k == "C":
