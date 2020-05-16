@@ -20,7 +20,6 @@ def mi(
         random_state=997,
 ):
     # Init
-    m_sel = []
     m_avl = _init_m_avl(m_codes, m_avl=m_avl)
     a_src, a_tgt = _init_a_src_a_tgt(q_code=q_code, a_src=a_src, a_tgt=a_tgt)
 
@@ -50,7 +49,6 @@ def mrai(
         random_state=997,
 ):
     # Init
-    m_sel = []
     m_avl = _init_m_avl(m_codes, m_avl=m_avl)
     thresholds = _init_thresholds(init_threshold, stepsize)
     a_src, a_tgt = _init_a_src_a_tgt(q_code=q_code, a_src=a_src, a_tgt=a_tgt)
@@ -240,7 +238,6 @@ def walk(
 
         # Allow to predict anything that follows
         if not straight:
-            s_tgt = get_att_2d(m_codes[step_m_sel, :], kind="targ")  # HACK
             s_src = np.union1d(a_tgt, s_src)  # HACK
 
         a_tgt = np.setdiff1d(s_src, a_src)
@@ -278,23 +275,23 @@ def criterion(matrix, row_filter=None, col_filter=None, aggregation=False):
 
 
 # Picks
-def _all_pick(criterion, **kwargs):
-    return np.where(criterion >= 0.0)[0]
+def _all_pick(crit, **kwargs):
+    return np.where(crit >= 0.0)[0]
 
 
-def _greedy_pick(criterion, thresholds=None, **kwargs):
+def _greedy_pick(crit, thresholds=None, **kwargs):
     for thr in thresholds:
-        m_sel = np.where(criterion >= thr)[0]
+        m_sel = np.where(crit >= thr)[0]
 
         if _stopping_criterion_greedy_pick(m_sel):
             break
     return m_sel
 
 
-def _stochastic_pick(c_all, random_state=997, normalize=True, **kwargs):
+def _stochastic_pick(c_all, random_state=997, normalize_criteria=True):
     assert len(c_all) > 0
 
-    if normalize:
+    if normalize_criteria:
         c_all = _criteria_to_distribution(c_all)
 
     np.random.seed(random_state)
@@ -308,9 +305,9 @@ def _stochastic_pick(c_all, random_state=997, normalize=True, **kwargs):
     return m_sel
 
 
-def _random_pick(criterion, random_state=997, **kwargs):
-    criterion = _criteria_to_uniform_distribution(criterion)
-    return _stochastic_pick(criterion, normalize=False)
+def _random_pick(crit):
+    crit = _criteria_to_uniform_distribution(crit)
+    return _stochastic_pick(crit, normalize_criteria=False)
 
 
 PICKS = dict(
