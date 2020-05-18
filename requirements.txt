@@ -1,0 +1,14 @@
+numpy~=1.18.1
+shap~=0.35.0
+joblib~=0.14.1
+scikit-learn~=0.22.1
+lightgbm~=2.3.0
+catboost~=0.23
+networkx~=2.4
+dask~=2.16.0
+graphviz~=2.40.1
+pandas~=1.0.3
+pydot~=1.4.1
+ipython~=7.13.0
+setuptools~=46.4.0
+decision-tree-morfist~=0.1.1

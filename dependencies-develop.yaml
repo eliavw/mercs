@@ -19,3 +19,4 @@ dependencies:
         - pymdown-extensions
         - semantic_version
         - matplotlib
+        - decision-tree-morfist
