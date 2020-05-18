@@ -43,13 +43,12 @@ def model_to_graph(model, types=None, idx=0, composition=False):
                 Model which is to be converted to a schematic representation
     idx:        int, default=0
                 index (or equivalent:id) of the model
+    composition:
 
     Returns
     -------
 
-    TODO
-    ----
-    Numpy throws a runtimewarning somewhere in this method, I need to fix that.
+    FIXME: Numpy throws a runtimewarning somewhere in this method, I need to fix that.
 
     """
 
@@ -204,7 +203,6 @@ def _create_vote_node(idx, types, classes):
         node_label(idx, kind="vote"),
         dict(kind="vote", idx=idx, tgt=[idx], type=types[idx], classes=classes[idx]),
     )
-
 
     return vote_node
 
