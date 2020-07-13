@@ -40,6 +40,7 @@ def base_induction_algorithm(
         mixed_kwargs,
         random_state=997,
         calculation_method_feature_importances="default",
+        mixed_nb_samples=10,
         n_jobs=1,
         verbose=0,
 ):
@@ -91,7 +92,7 @@ def base_induction_algorithm(
 
     # Generate a list of random seeds.
     np.random.seed(random_state)
-    random_states = np.random.randint(10 ** 6, size=(len(ids)), dtype=int)
+    random_states = np.random.randint(10 ** 3, size=(len(ids)), dtype=int)
 
     parameters = _build_parameters(
         ids,
@@ -105,6 +106,7 @@ def base_induction_algorithm(
         mixed_kwargs,
         random_states,
         calculation_method_feature_importances,
+        min_nb_samples,
         data,
     )
 
@@ -214,6 +216,7 @@ def _build_parameters(
         mixed_kwargs,
         random_states,
         calculation_method_feature_importances,
+        min_nb_samples,
         data,
 ):
     """ Creates the "parameters" object used by the models
@@ -264,6 +267,7 @@ def _build_parameters(
             )[0].tolist()
 
         kwargs["calculation_method_feature_importances"] = calculation_method_feature_importances
+        kwargs["min_nb_samples"] = min_nb_samples
 
         kwargs = _add_categorical_features_to_kwargs(
             learner, desc_ids, nominal_attributes, kwargs
@@ -313,7 +317,14 @@ def _learn_model(
     i, o = get_i_o(data, desc_ids, targ_ids, filter_nan=filter_nan)
 
     if i.shape[0] < min_nb_samples:
-        # If not enough samples, the model is not fitted
+        msg = """
+        Only {} samples available for training.
+        min_nb_samples is set to {}.
+        Therefore no training occured.
+        """.format(
+            i.shape[0], min_nb_samples
+        )
+        warnings.warn(msg)
         return None
     else:
         # Pre-processing

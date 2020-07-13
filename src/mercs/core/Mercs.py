@@ -510,6 +510,10 @@ class Mercs(object):
         return q_model
 
     def _filter_m_list_m_codes(self):
+        """Filtering out the failed models.
+
+        This happens when TODO: EXPLAIN
+        """
         fail_m_idxs = [i for i, m in enumerate(self.m_list) if m is None]
         self.m_codes = np.delete(self.m_codes, fail_m_idxs, axis=0)
         self.m_list = [m for m in self.m_list if m is not None]
@@ -604,7 +608,7 @@ class Mercs(object):
         nominal = self.metadata["nominal_attributes"]
         att_ids = self.metadata["attributes"]
 
-        if len(nominal) + len(numeric) != len(att_ids):
+        if len(nominal) + len(numeric) < len(att_ids):
             numeric = att_ids - nominal
             self._update_dictionary(
                 self.metadata, kind="metadata", numeric_attributes=numeric
