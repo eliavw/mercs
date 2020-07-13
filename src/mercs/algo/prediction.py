@@ -9,10 +9,10 @@ EPSILON = 0.00001
 
 
 # There are 4 possible strategies for prediction
-# 1. mi
-# 2. mrai
-# 3. it (default)
-# 4. random walks
+# 1. mi: missing value imputation
+# 2. mrai: based on 'mi'
+# 3. it(default): iteratively uses 'mrai'
+# 4. random walks: also based on 'mrai'
 # Any of them will return a list of selected models, based on the m_codes and q_codes
 def mi(
         m_codes,
