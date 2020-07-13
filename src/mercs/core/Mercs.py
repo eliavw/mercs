@@ -125,7 +125,8 @@ class Mercs(object):
         mi=prediction.mi,
         mrai=prediction.mrai,
         it=prediction.it,
-        rw=prediction.rw,
+        random_walk=prediction.random_walk,
+        default=prediction.it
     )
 
     inference_algorithms = dict(
@@ -231,7 +232,9 @@ class Mercs(object):
         self.g_list = []
         self.i_list = []
 
-        self.m_fimps = np.array([])
+        # Feature importances of each model
+        self.m_feature_importances = np.array([])
+        # Model score
         self.m_score = np.array([])
 
         self.FI = np.array([])
@@ -253,31 +256,31 @@ class Mercs(object):
         self.model_data = dict()
 
         # Configurations for each algorithm
-        self.imp_cfg = self._default_config(self.imputer_algorithm)
-        self.ind_cfg = self._default_config(self.induction_algorithm)
-        self.sel_cfg = self._default_config(self.selection_algorithm)
-        self.clf_cfg = self._default_config(self.classifier_algorithm)
-        self.rgr_cfg = self._default_config(self.regressor_algorithm)
-        self.prd_cfg = self._default_config(self.prediction_algorithm)
-        self.inf_cfg = self._default_config(self.inference_algorithm)
-        self.evl_cfg = self._default_config(self.evaluation_algorithm)
+        self.imputer_config = self._default_config(self.imputer_algorithm)
+        self.induction_config = self._default_config(self.induction_algorithm)
+        self.selection_config = self._default_config(self.selection_algorithm)
+        self.classifier_config = self._default_config(self.classifier_algorithm)
+        self.regressor_config = self._default_config(self.regressor_algorithm)
+        self.prediction_config = self._default_config(self.prediction_algorithm)
+        self.inference_config = self._default_config(self.inference_algorithm)
+        self.evaluation_config = self._default_config(self.evaluation_algorithm)
 
         # Aggregate all configurations
         self.configuration = dict(
-            imputation=self.imp_cfg,
-            induction=self.ind_cfg,
-            selection=self.sel_cfg,
-            classification=self.clf_cfg,
-            regression=self.rgr_cfg,
-            prediction=self.prd_cfg,
-            inference=self.inf_cfg,
+            imputation=self.imputer_config,
+            induction=self.induction_config,
+            selection=self.selection_config,
+            classification=self.classifier_config,
+            regression=self.regressor_config,
+            prediction=self.prediction_config,
+            inference=self.inference_config,
         )
 
         # Add MixedRandomForest configuration if the algorithm has been selected
-        self.mix_cfg = None
+        self.mix_config = None
         if self.mixed_algorithm:
-            self.mix_cfg = self._default_config(self.mixed_algorithm)
-            self.configuration["mixed"] = self.mix_cfg
+            self.mix_config = self._default_config(self.mixed_algorithm)
+            self.configuration["mixed"] = self.mix_config
 
         # Update config based on random_state and kwargs
         self._update_config(random_state=random_state, **kwargs)
@@ -298,10 +301,10 @@ class Mercs(object):
 
         self.i_list = self.imputer_algorithm(X, self.metadata.get("nominal_attributes"))
 
-        # N.b.: 'random state' parameter is in 'self.sel_cfg'
+        # N.b.: 'random state' parameter is in 'self.sel_config'
         if m_codes is None:
             generate_mixed_codes = True if self.mixed_algorithm else False
-            self.m_codes = self.selection_algorithm(self.metadata, generate_mixed_codes, **self.sel_cfg)
+            self.m_codes = self.selection_algorithm(self.metadata, generate_mixed_codes, **self.selection_config)
         else:
             self.m_codes = m_codes
 
@@ -312,10 +315,10 @@ class Mercs(object):
             self.classifier_algorithm,
             self.regressor_algorithm,
             self.mixed_algorithm,
-            self.clf_cfg,
-            self.rgr_cfg,
-            self.mix_cfg,
-            **self.ind_cfg
+            self.classifier_config,
+            self.regressor_config,
+            self.mix_config,
+            **self.induction_config
         )
 
         self._filter_m_list_m_codes()
@@ -324,10 +327,10 @@ class Mercs(object):
 
         if self.imputer_algorithm == self.imputer_algorithms.get("nan"):
             # If you do no have imputers, you cannot use them as a baseline evaluation
-            self.evl_cfg["consider_imputations"] = False
+            self.evaluation_config["consider_imputations"] = False
 
         self.m_score = self.evaluation_algorithm(
-            X, self.m_codes, self.m_list, self.i_list, **self.evl_cfg
+            X, self.m_codes, self.m_list, self.i_list, **self.evaluation_config
         )
 
         toc = default_timer()
@@ -362,13 +365,13 @@ class Mercs(object):
 
         # Make query-diagram
         tic_prediction = default_timer()
-        m_sel = self.prediction_algorithm(
-            self.m_codes, self.m_fimps, self.m_score, q_code=self.q_code, **self.prd_cfg
+        m_selection = self.prediction_algorithm(
+            self.m_codes, self.m_feature_importances, self.m_score, q_code=self.q_code, **self.prediction_config
         )
         toc_prediction = default_timer()
 
         tic_diagram = default_timer()
-        self.q_diagram = self._build_q_diagram(self.m_list, m_sel)
+        self.q_diagram = self._build_q_diagram(self.m_list, m_selection)
         toc_diagram = default_timer()
 
         tic_inference = default_timer()
@@ -405,22 +408,22 @@ class Mercs(object):
         return self.params
 
     # Diagrams
-    def _build_q_diagram(self, m_list, m_sel, composition=False):
-        if isinstance(m_sel, tuple):
+    def _build_q_diagram(self, m_list, m_selection, composition=False):
+        if isinstance(m_selection, tuple):
             diagrams = [
                 build_diagram(
                     m_list,
-                    m_sel_instance,
+                    m_selection_instance,
                     self.q_code,
                     prune=True,
                     composition=composition,
                 )
-                for m_sel_instance in m_sel
+                for m_selection_instance in m_selection
             ]
             return tuple(diagrams)
         else:
             return build_diagram(
-                m_list, m_sel, self.q_code, prune=True, composition=composition
+                m_list, m_selection, self.q_code, prune=True, composition=composition
             )
 
     def show_q_diagram(self, kind="svg", fi=False, ortho=False, index=None, **kwargs):
@@ -514,7 +517,7 @@ class Mercs(object):
     # Graphs
     def _consistent_data_structures(self):
         self._update_m_codes()
-        self._update_m_fimps()
+        self._update_m_feature_importances()
 
     def _expand_m_list(self):
         self.m_list = list(itertools.chain.from_iterable(self.m_list))
@@ -535,14 +538,14 @@ class Mercs(object):
             ]
         )
 
-    def _update_m_fimps(self):
+    def _update_m_feature_importances(self):
 
         init = np.zeros(self.m_codes.shape)
 
         for m_idx, mod in enumerate(self.m_list):
             init[m_idx, list(mod.desc_ids)] = mod.feature_importances_
 
-        self.m_fimps = init
+        self.m_feature_importances = init
 
     def _update_m_score(self, binary_scores=False):
         if binary_scores:
@@ -610,17 +613,17 @@ class Mercs(object):
     # Configuration
     def _reconfig_prediction(self, prediction_algorithm="mi", **kwargs):
         self.prediction_algorithm = self.prediction_algorithms[prediction_algorithm]
-        self.prd_cfg = self._default_config(self.prediction_algorithm)
+        self.prediction_config = self._default_config(self.prediction_algorithm)
 
-        self.configuration["prediction"] = self.prd_cfg
+        self.configuration["prediction"] = self.prediction_config
         self._update_config(**kwargs)
 
     def _reconfig_inference(self, inference_algorithm="base", **kwargs):
         self.inference_algorithm = self.inference_algorithms[inference_algorithm]
 
-        self.inf_cfg = self._default_config(self.inference_algorithm)
+        self.inf_config = self._default_config(self.inference_algorithm)
 
-        self.configuration["inference"] = self.inf_cfg
+        self.configuration["inference"] = self.inf_config
         self._update_config(**kwargs)
 
     @staticmethod

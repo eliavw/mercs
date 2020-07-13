@@ -8,7 +8,12 @@ from ..utils import code_to_query, get_att_2d, TARG_ENCODING
 EPSILON = 0.00001
 
 
-# Strategies
+# There are 4 possible strategies for prediction
+# 1. mi
+# 2. mrai
+# 3. it (default)
+# 4. random walks
+# Any of them will return a list of selected models, based on the m_codes and q_codes
 def mi(
         m_codes,
         q_code,
@@ -20,7 +25,7 @@ def mi(
     m_avl = _init_m_avl(m_codes, m_avl=m_avl)
     a_src, a_tgt = _init_a_src_a_tgt(q_code=q_code, a_src=a_src, a_tgt=a_tgt)
 
-    c_all = criterion(m_codes, row_filter=m_avl, col_filter=a_tgt, aggregation=False)
+    c_all = _criterion(m_codes, row_filter=m_avl, col_filter=a_tgt, aggregation=False)
     m_sel_idx = np.unique(np.where(c_all == TARG_ENCODING)[0]).astype(int)
     m_sel = m_avl[m_sel_idx]
 
@@ -63,10 +68,10 @@ def mrai(
         return None
     else:
         # Criterion
-        c_tgt = criterion(
+        c_tgt = _criterion(
             m_score, row_filter=m_flt, col_filter=a_tgt, aggregation=False
         )
-        c_src = criterion(m_fimps, row_filter=m_flt, col_filter=a_src, aggregation=True)
+        c_src = _criterion(m_fimps, row_filter=m_flt, col_filter=a_src, aggregation=True)
         c_all = c_src * c_tgt + EPSILON
 
         if any_target:
@@ -147,7 +152,7 @@ def it(
     return m_sel
 
 
-def rw(
+def random_walk(
         m_codes,
         m_fimps,
         m_score,
@@ -160,7 +165,7 @@ def rw(
         random_state=997,
 ):
     random_walks = [
-        walk(
+        _walk(
             m_codes,
             m_fimps,
             m_score,
@@ -177,7 +182,7 @@ def rw(
     return tuple(random_walks)
 
 
-def walk(
+def _walk(
         m_codes,
         m_fimps,
         m_score,
@@ -232,8 +237,8 @@ def walk(
     return m_sel
 
 
-# MRAI-IT-RW Criterion
-def criterion(matrix, row_filter=None, col_filter=None, aggregation=False):
+# Criterion used by MRAI, IT and RW strategies
+def _criterion(matrix, row_filter=None, col_filter=None, aggregation=False):
     """
     Typical usecase 
     
@@ -293,7 +298,10 @@ def _random_pick(crit):
 
 
 PICKS = dict(
-    all=_all_pick, greedy=_greedy_pick, stochastic=_stochastic_pick, random=_random_pick
+    all=_all_pick,
+    greedy=_greedy_pick,
+    stochastic=_stochastic_pick,
+    random=_random_pick
 )
 
 
