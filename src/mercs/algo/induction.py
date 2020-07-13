@@ -40,7 +40,7 @@ def base_induction_algorithm(
         mixed_kwargs,
         random_state=997,
         calculation_method_feature_importances="default",
-        mixed_nb_samples=10,
+        min_nb_samples=10,
         n_jobs=1,
         verbose=0,
 ):
