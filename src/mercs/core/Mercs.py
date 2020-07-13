@@ -608,7 +608,7 @@ class Mercs(object):
         nominal = self.metadata["nominal_attributes"]
         att_ids = self.metadata["attributes"]
 
-        if len(nominal) + len(numeric) < len(att_ids):
+        if len(nominal) + len(numeric) != len(att_ids):
             numeric = att_ids - nominal
             self._update_dictionary(
                 self.metadata, kind="metadata", numeric_attributes=numeric

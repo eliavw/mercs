@@ -187,6 +187,7 @@ def _build_models(parameters, n_jobs=1, verbose=0):
         m_list: list of trained models
 
     """
+
     if n_jobs < 2:
         if n_jobs < 1:
             msg = """Number of jobs needs to be at least 1. Assuming 1 job."""
@@ -233,6 +234,7 @@ def _build_parameters(
         mixed_kwargs: mixed learner configuration
         random_states:
         calculation_method_feature_importances:
+        min_nb_samples: minimum number of samples
         data: training data
 
     Returns:
