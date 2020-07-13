@@ -5,11 +5,13 @@ import numpy as np
 
 
 def test_init():
-    train, test = default_dataset(n_features=3)
 
+    # load default dataset and print head
+    train, test = default_dataset(n_features=3)
     df = pd.DataFrame(train)
     df.head()
 
+    # initialise MERCS model
     clf = Mercs(
         selection_algorithm="base",
         inference_algorithm="base",
@@ -23,8 +25,10 @@ def test_init():
         max_steps=8,
     )
 
+    # ids of the nominal variables
     nominal_ids = {train.shape[1]-1}
 
+    # fit the model
     clf.fit(train, nominal_attributes=nominal_ids)
 
     for idx, m in enumerate(clf.m_list):
@@ -44,11 +48,14 @@ def test_init():
         print(msg)
 
     # Single target
+    # Query code is [0 0 0 1] where 0 = feature and 1 = target variable
     q_code = np.zeros(clf.m_codes[0].shape[0], dtype=int)
     q_code[-1:] = 1
     print("Query code is: {}".format(q_code))
 
+    # predict value of query code for test data
     y_pred = clf.predict(test, q_code=q_code)
+    # print the first 10 predictions
     print(y_pred[:10])
 
 

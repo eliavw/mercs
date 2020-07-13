@@ -201,11 +201,12 @@ class Mercs(object):
         )
 
         # Add MixedRandomForest configuration if the algorithm has been selected
-        if mixed_algorithm:
-            self.params["mixed_algorithm"] = mixed_algorithm
+        # As opposed to the rest of algorithms, this one is optional, so it has to be initialised in a different way
+        if mixed_algorithm is not None and mixed_algorithm in self.mixed_algorithms:
             self.mixed_algorithm = self.mixed_algorithms[mixed_algorithm]
         else:
-            self.mixed_algorithm = None
+            print("Unknown mixed algorithm")
+            exit(-1)
 
         # For some reason, some parameters are expected to be passed as kwargs, so we aggregate them here with the
         # explicitly-passed parameters
