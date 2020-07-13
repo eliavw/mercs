@@ -19,7 +19,7 @@ from ..algo import (
     inference_legacy,
     inference,
     selection,
-    vector_prediction,
+    prediction,
     evaluation,
 )
 from ..composition import CompositeModel, NewCompositeModel, o
@@ -122,10 +122,10 @@ class Mercs(object):
     )
 
     prediction_algorithms = dict(
-        mi=vector_prediction.mi,
-        mrai=vector_prediction.mrai,
-        it=vector_prediction.it,
-        rw=vector_prediction.rw,
+        mi=prediction.mi,
+        mrai=prediction.mrai,
+        it=prediction.it,
+        rw=prediction.rw,
     )
 
     inference_algorithms = dict(
