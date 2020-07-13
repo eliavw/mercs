@@ -11,22 +11,22 @@ from ..utils.inference_tools import (
 # Main algorithm
 def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
     """Add inference information to graph g
+    The information is added to the graph passed as parameter, no need object is returned
     
     Arguments:
-        g {[type]} -- [description]
-        m_list {[type]} -- [description]
-        i_list {[type]} -- [description]
-        c_list {[type]} -- [description]
-        data {[type]} -- [description]
-        nominal_ids {[type]} -- [description]
+        g {[type]} -- graph
+        m_list {[type]} -- models
+        i_list {[type]} -- imputation nodes
+        c_list {[type]} -- composite nodes
+        data {[type]} -- test data to predict
+        nominal_ids {[type]} -- identifiers of the nominal attributes
     
     Raises:
-        ValueError: [description]
-    
-    Returns:
-        [type] -- [description]
+        ValueError: raised when a node type cannot be recognized
+
     """
 
+    # Helper functions to check node type
     def _data_node(k): return k == "D"
     def _model_node(k): return k == "M"
     def _imputation_node(k): return k == "I"
@@ -34,31 +34,31 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
 
     nb_rows, _ = data.shape
 
-    g_desc_ids = list(g.desc_ids)
+    g_descriptive_ids = list(g.desc_ids)
 
     if data is not None:
-        g.data = data[:, g_desc_ids]
+        g.data = data[:, g_descriptive_ids]
     else:
         g.data = None
 
-    for n in g.nodes():
-        if _data_node(n[0]):
-            in_degree = g.in_degree(n)
+    for node in g.nodes():
+        if _data_node(node[0]):
+            in_degree = g.in_degree(node)
             if in_degree == 0:
-                input_data_node(g, n, g_desc_ids)
+                input_data_node(g, node, g_descriptive_ids)
             elif in_degree > 0:
-                if n[1] in nominal_ids:
-                    nominal_data_node(g, n, m_list, c_list)
+                if node[1] in nominal_ids:
+                    nominal_data_node(g, node, m_list, c_list)
                 else:
-                    numeric_data_node(g, n, m_list, c_list)
-        elif _model_node(n[0]):
-            model_node(g, n, m_list)
-        elif _imputation_node(n[0]):
-            imputation_node(g, n, i_list, nb_rows)
-        elif _composite_node(n[0]):
-            composite_node(g, n, c_list)
+                    numeric_data_node(g, node, m_list, c_list)
+        elif _model_node(node[0]):
+            model_node(g, node, m_list)
+        elif _imputation_node(node[0]):
+            imputation_node(g, node, i_list, nb_rows)
+        elif _composite_node(node[0]):
+            composite_node(g, node, c_list)
         else:
-            raise ValueError("Did not recognize node kind of {}".format(n))
+            raise ValueError("Did not recognize node kind of {}".format(node))
 
 
 # Specific Nodes
@@ -83,21 +83,20 @@ def imputation_node(g, node, i_list, nb_rows):
 
 
 def numeric_data_node(g, node, m_list, c_list):
-    parents = _numeric_parents(g, m_list, c_list, node)
+    node_parents = _numeric_parents(g, m_list, c_list, node)
 
     def f(parents):
         collector = _numeric_inputs(g, parents)
         return np.mean(collector, axis=0)
 
-    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["inputs"] = node_parents
     g.nodes[node]["compute"] = f
 
 
 def nominal_data_node(g, node, m_list, c_list):
-    # New
-    parents = _nominal_parents(g, m_list, c_list, node)
+    node_parents = _nominal_parents(g, m_list, c_list, node)
 
-    classes = np.unique(np.hstack([c for _, c, _ in parents]))
+    classes = np.unique(np.hstack([c for _, c, _ in node_parents]))
 
     def vote(X):
         return classes.take(np.argmax(X, axis=1), axis=0)
@@ -110,20 +109,19 @@ def nominal_data_node(g, node, m_list, c_list):
         return vote(F(parents))
 
     g.nodes[node]["classes"] = classes
-    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["inputs"] = node_parents
     g.nodes[node]["compute_proba"] = F
     g.nodes[node]["compute"] = F2
 
 
 def model_node(g, node, m_list):
-    # New
-    parents = _model_parents(g, node)
+    model_parents = _model_parents(g, node)
 
     def f(parents):
         X = _model_inputs(g, parents)
         return m_list[node[1]].predict(X)
 
-    g.nodes[node]["inputs"] = parents
+    g.nodes[node]["inputs"] = model_parents
     g.nodes[node]["compute"] = f
 
     if hasattr(m_list[node[1]], "predict_proba"):
@@ -138,21 +136,21 @@ def composite_node(g, node, c_list):
     return model_node(g, node, c_list)
 
 
-# Helpers - Function
+# Helper functions
 def compute(g, node, proba=False):
-    result = "result"
-    compute = "compute"
+    result_str = "result"
+    compute_str = "compute"
 
     if proba:
-        result += "_proba"
-        compute += "_proba"
+        result_str += "_proba"
+        compute_str += "_proba"
 
-    r = g.nodes[node].get(result, None)
+    r = g.nodes[node].get(result_str, None)
     if r is None:
         i = g.nodes[node].get("inputs")
-        f = g.nodes[node].get(compute)
-        g.nodes[node][result] = f(i)
-        return g.nodes[node][result]
+        f = g.nodes[node].get(compute_str)
+        g.nodes[node][result_str] = f(i)
+        return g.nodes[node][result_str]
     else:
         return r
 
@@ -180,7 +178,7 @@ def _model_inputs(g, parents):
 
 def _numeric_parents(g, m_list, c_list, node):
     parents = [
-        (rel_idx(p_idx, node[1], k, m_list, c_list), (k, p_idx))
+        (_rel_idx(p_idx, node[1], k, m_list, c_list), (k, p_idx))
         for k, p_idx in g.predecessors(node)
     ]
 
@@ -190,9 +188,9 @@ def _numeric_parents(g, m_list, c_list, node):
 def _nominal_parents(g, m_list, c_list, node):
     parents = [
         (
-            rel_idx(p_idx, node[1], k, m_list, c_list),
-            classes(
-                p_idx, rel_idx(p_idx, node[1], k, m_list, c_list), k, m_list, c_list
+            _rel_idx(p_idx, node[1], k, m_list, c_list),
+            _classes(
+                p_idx, _rel_idx(p_idx, node[1], k, m_list, c_list), k, m_list, c_list
             ),
             (k, p_idx),
         )
@@ -210,7 +208,7 @@ def _model_parents(g, node):
     return parents
 
 
-def rel_idx(p_idx, n_idx, k, m_list, c_list):
+def _rel_idx(p_idx, n_idx, k, m_list, c_list):
     if k == "M":
         return m_list[p_idx].targ_ids.index(n_idx)
     elif k == "C":
@@ -219,7 +217,7 @@ def rel_idx(p_idx, n_idx, k, m_list, c_list):
         return 0
 
 
-def classes(p_idx, r_idx, k, m_list, c_list):
+def _classes(p_idx, r_idx, k, m_list, c_list):
     # FIXME: breaks for mixed trees. list index out of range
     if k == "M":
         return m_list[p_idx].classes_[r_idx]
