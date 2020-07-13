@@ -275,7 +275,7 @@ class Mercs(object):
 
         # Add MixedRandomForest configuration if the algorithm has been selected
         self.mix_cfg = None
-        if mixed_algorithm:
+        if self.mixed_algorithm:
             self.mix_cfg = self._default_config(self.mixed_algorithm)
             self.configuration["mixed"] = self.mix_cfg
 
@@ -371,7 +371,8 @@ class Mercs(object):
         self.q_diagram = self._build_q_diagram(self.m_list, m_sel)
         toc_diagram = default_timer()
 
-        tic_inference_algo = default_timer()
+        tic_inference = default_timer()
+        # FIXME: building the model breaks
         if isinstance(self.q_diagram, tuple):
             q_diagrams = self.q_diagram
 
@@ -385,7 +386,7 @@ class Mercs(object):
         else:
             self.q_model = self._build_q_model(X, self.q_diagram)
 
-        toc_infalgo = default_timer()
+        toc_inference = default_timer()
 
         tic_dask = default_timer()
         X = X[:, self.q_model.desc_ids]
@@ -394,7 +395,7 @@ class Mercs(object):
 
         self.model_data["prd_time"] = toc_prediction - tic_prediction
         self.model_data["dia_time"] = toc_diagram - tic_diagram
-        self.model_data["infalgo_time"] = toc_infalgo - tic_inference_algo
+        self.model_data["inference_time"] = toc_inference - tic_inference
         self.model_data["dsk_time"] = toc_dask - tic_dask
         self.model_data["inf_time"] = toc_dask - tic_prediction
 

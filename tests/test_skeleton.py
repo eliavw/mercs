@@ -12,6 +12,8 @@ def test_init():
     df.head()
 
     # initialise MERCS model
+    # the nb_targets defines the number of targets to use while fitting the model
+    # but it is unrelated to the number of targets to use while predicting
     clf = Mercs(
         selection_algorithm="base",
         inference_algorithm="base",
