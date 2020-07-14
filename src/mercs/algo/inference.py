@@ -17,7 +17,7 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
         g {[type]} -- graph
         m_list {[type]} -- models
         i_list {[type]} -- imputation nodes
-        c_list {[type]} -- composite nodes
+        c_list {[type]} -- composition nodes
         data {[type]} -- test data to predict
         nominal_ids {[type]} -- identifiers of the nominal attributes
     
@@ -27,10 +27,10 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
     """
 
     # Helper functions to check node type
-    def _data_node(k): return k == "D"
-    def _model_node(k): return k == "M"
-    def _imputation_node(k): return k == "I"
-    def _composite_node(k): return k == "C"
+    def _data_node(kind): return kind == "D"
+    def _model_node(kind): return kind == "M"
+    def _imputation_node(kind): return kind == "I"
+    def _composite_node(kind): return kind == "C"
 
     nb_rows, _ = data.shape
 
@@ -61,13 +61,17 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
             raise ValueError("Did not recognize node kind of {}".format(node))
 
 
-# Specific Nodes
+# Specific nodes:
+# 1. input data
+# 2. imputation
+# 3. numeric data
+# 4. nominal data
+# 5. model
 def input_data_node(g, node, g_desc_ids):
     def f(rel_idx):
         f1 = select_numeric(rel_idx)
         return f1(g.data)
 
-    # New
     g.nodes[node]["inputs"] = g_desc_ids.index(node[1])
     g.nodes[node]["compute"] = f
 
@@ -77,7 +81,6 @@ def imputation_node(g, node, i_list, nb_rows):
     def f(n):
         return i_list[node[1]].transform(dummy_array(n)).ravel()
 
-    # New
     g.nodes[node]["inputs"] = nb_rows
     g.nodes[node]["compute"] = f
 
@@ -178,8 +181,8 @@ def _model_inputs(g, parents):
 
 def _numeric_parents(g, m_list, c_list, node):
     parents = [
-        (_rel_idx(p_idx, node[1], k, m_list, c_list), (k, p_idx))
-        for k, p_idx in g.predecessors(node)
+        (_rel_idx(predecessor_idx, node[1], kind, m_list, c_list), (kind, predecessor_idx))
+        for kind, predecessor_idx in g.predecessors(node)
     ]
 
     return parents
@@ -188,38 +191,39 @@ def _numeric_parents(g, m_list, c_list, node):
 def _nominal_parents(g, m_list, c_list, node):
     parents = [
         (
-            _rel_idx(p_idx, node[1], k, m_list, c_list),
+            _rel_idx(predecessor_idx, node[1], kind, m_list, c_list),
             _classes(
-                p_idx, _rel_idx(p_idx, node[1], k, m_list, c_list), k, m_list, c_list
+                predecessor_idx, _rel_idx(predecessor_idx, node[1], kind, m_list, c_list), kind, m_list, c_list
             ),
-            (k, p_idx),
+            (kind, predecessor_idx),
         )
-        for k, p_idx in g.predecessors(node)
+        for kind, predecessor_idx in g.predecessors(node)
     ]
 
     return parents
 
 
 def _model_parents(g, node):
-    idxs = {p_idx: (m, p_idx) for m, p_idx in g.predecessors(node)}
+    idxs = {predecessor_idx: (m, predecessor_idx) for m, predecessor_idx in g.predecessors(node)}
 
-    parents = [n for k, n in sorted(idxs.items())]
+    parents = [n for kind, n in sorted(idxs.items())]
 
     return parents
 
 
-def _rel_idx(p_idx, n_idx, k, m_list, c_list):
-    if k == "M":
-        return m_list[p_idx].targ_ids.index(n_idx)
-    elif k == "C":
-        return c_list[p_idx].targ_ids.index(n_idx)
+# calculates the relative id of a node with respect to its predecessor, based on node kind
+def _rel_idx(predecessor_idx, node_idx, kind, m_list, c_list):
+    if kind == "M":
+        return m_list[predecessor_idx].targ_ids.index(node_idx)
+    elif kind == "C":
+        return c_list[predecessor_idx].targ_ids.index(node_idx)
     else:
         return 0
 
 
-def _classes(p_idx, r_idx, k, m_list, c_list):
+def _classes(predecessor_idx, rel_idx, kind, m_list, c_list):
     # FIXME: breaks for mixed trees. list index out of range
-    if k == "M":
-        return m_list[p_idx].classes_[r_idx]
-    elif k == "C":
-        return c_list[p_idx].classes_[r_idx]
+    if kind == "M":
+        return m_list[predecessor_idx].classes_[rel_idx]
+    elif kind == "C":
+        return c_list[predecessor_idx].classes_[rel_idx]
