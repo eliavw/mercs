@@ -50,7 +50,7 @@ class CanonicalModel(object):
             self.feature_importances_ = self.model.feature_importances_
 
         # Canonization of prediction-related stuff
-        if self.out_kind in {"nominal"}:
+        if self.out_kind == "nominal":
             self.predict = self.model.predict
             self.predict_proba = self.model.predict_proba
             self.classes_ = self.model.classes_
@@ -69,17 +69,22 @@ class CanonicalModel(object):
                 # TODO: fill this
                 pass
 
-        elif self.out_kind in {"numeric"}:
+        elif self.out_kind == "numeric":
             self.predict = self.model.predict
 
-        elif self.out_kind in {"mixed"}:
+        elif self.out_kind == "mixed":
             self.predict = self.model.predict
             self.predict_proba = self.model.predict_proba
+
+            # add labels of nominal target variables
+            # add dummy label -1 for numeric target variables
+            # this is needed because of the way the graph is built
             self.classes_ = []
             self.n_classes_ = []
-            for i in range(len(self.model.classification_labels)):
-                self.classes_.append(self.model.classification_labels[i + 1])
-                self.n_classes_.append(len(self.model.classification_labels[i + 1]))
+            for i in range(len(self.model.classification_labels) + 1):
+                labels = self.model.classification_labels.get(i)
+                self.classes_.append(labels)
+                self.n_classes_.append(len(labels) if labels is not None else -1)
 
         else:
             raise NotImplementedError(

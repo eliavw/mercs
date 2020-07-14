@@ -180,25 +180,27 @@ def _model_inputs(g, parents):
 
 
 def _numeric_parents(g, m_list, c_list, node):
-    parents = [
-        (_rel_idx(predecessor_idx, node[1], kind, m_list, c_list), (kind, predecessor_idx))
-        for kind, predecessor_idx in g.predecessors(node)
-    ]
+    parents = []
+    for kind, predecessor_idx in g.predecessors(node):
+        rel_idx = _rel_idx(predecessor_idx, node[1], kind, m_list, c_list)
+        parents.append((rel_idx, (kind, predecessor_idx)))
 
     return parents
 
 
 def _nominal_parents(g, m_list, c_list, node):
-    parents = [
-        (
-            _rel_idx(predecessor_idx, node[1], kind, m_list, c_list),
-            _classes(
-                predecessor_idx, _rel_idx(predecessor_idx, node[1], kind, m_list, c_list), kind, m_list, c_list
-            ),
-            (kind, predecessor_idx),
+    parents = []
+
+    for kind, predecessor_idx in g.predecessors(node):
+        rel_idx = _rel_idx(predecessor_idx, node[1], kind, m_list, c_list)
+        classes = _classes(
+            predecessor_idx,
+            rel_idx,
+            kind,
+            m_list,
+            c_list
         )
-        for kind, predecessor_idx in g.predecessors(node)
-    ]
+        parents.append((rel_idx, classes, (kind, predecessor_idx)))
 
     return parents
 
