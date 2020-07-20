@@ -168,6 +168,7 @@ def compute(g, node, proba=False):
 
 
 def _nominal_inputs(g, parents, classes):
+    # Returns the 'nominal' inputs of the parent nodes
     collector = []
     for idx, c, n in parents:
         if len(c) == len(classes):
@@ -179,6 +180,7 @@ def _nominal_inputs(g, parents, classes):
 
 
 def _numeric_inputs(g, parents):
+    # Returns the 'numeric' inputs of the parent nodes
     collector = []
     for idx, n in parents:
         collector.append(select_numeric(idx)(compute(g, n)))
@@ -186,12 +188,14 @@ def _numeric_inputs(g, parents):
 
 
 def _model_inputs(g, parents):
+    # Returns the 'model' inputs of the parent nodes
     collector = [compute(g, n) for n in parents]
     collector = np.stack(collector, axis=1)
     return collector
 
 
 def _numeric_parents(g, m_list, c_list, node):
+    # Returns the 'numeric' parents of a node
     parents = []
     for kind, predecessor_idx in g.predecessors(node):
         rel_idx = _rel_idx(predecessor_idx, node[1], kind, m_list, c_list)
@@ -201,8 +205,8 @@ def _numeric_parents(g, m_list, c_list, node):
 
 
 def _nominal_parents(g, m_list, c_list, node):
+    # Returns the 'nominal' parents of a node
     parents = []
-
     for kind, predecessor_idx in g.predecessors(node):
         rel_idx = _rel_idx(predecessor_idx, node[1], kind, m_list, c_list)
         classes = _classes(
@@ -218,6 +222,7 @@ def _nominal_parents(g, m_list, c_list, node):
 
 
 def _model_parents(g, node):
+    # Returns the 'model' parents of a node
     idxs = {predecessor_idx: (m, predecessor_idx) for m, predecessor_idx in g.predecessors(node)}
 
     parents = [n for kind, n in sorted(idxs.items())]
@@ -225,8 +230,8 @@ def _model_parents(g, node):
     return parents
 
 
-# calculates the relative id of a node with respect to its predecessor, based on node kind
 def _rel_idx(predecessor_idx, node_idx, kind, m_list, c_list):
+    # Calculates the relative id of a node with respect to its predecessor, based on node kind
     if kind == "M":
         return m_list[predecessor_idx].targ_ids.index(node_idx)
     elif kind == "C":
@@ -236,6 +241,7 @@ def _rel_idx(predecessor_idx, node_idx, kind, m_list, c_list):
 
 
 def _classes(predecessor_idx, rel_idx, kind, m_list, c_list):
+    # Returns the classes of a model, based on node kind
     if kind == "M":
         return m_list[predecessor_idx].classes_[rel_idx]
     elif kind == "C":

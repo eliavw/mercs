@@ -38,9 +38,9 @@ def model_to_graph(model, types=None, idx=0, composition=False):
 
     Parameters
     ----------
-    types
     model:      model
                 Model which is to be converted to a schematic representation
+    types:      node types
     idx:        int, default=0
                 index (or equivalent:id) of the model
     composition:
