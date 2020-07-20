@@ -23,7 +23,7 @@ from ..algo import (
     evaluation,
 )
 from ..composition import CompositeModel, o
-from ..graph import build_diagram, compose_all, model_to_graph
+from ..graph import build_diagram
 from ..utils import (
     TARG_ENCODING,
     code_to_query,
@@ -507,26 +507,6 @@ class Mercs(object):
         q_diagram = build_diagram(self.c_list, self.c_sel, self.q_code, prune=True)
         return q_diagram
 
-    def merge_models(self, q_models):
-
-        types = self._get_types(self.metadata)
-
-        walks = [
-            model_to_graph(m, types, idx=idx, composition=True)
-            for idx, m in enumerate(q_models)
-        ]
-        q_diagram = compose_all(walks)
-        filtered_nodes = self.filter_nodes(q_diagram)
-
-        assert isinstance(self.inference_algorithm, inference_legacy.dask_inference_algorithm)
-        try:
-            self.inference_algorithm(q_diagram, sorted_nodes=filtered_nodes)
-        except NetworkXUnfeasible:
-            raise_recursion_error(q_diagram)
-
-        q_model = CompositeModel(q_diagram)
-        return q_diagram, q_model
-
     def _get_q_model(self, q_diagram, X):
 
         self._add_imputer_function(q_diagram)
@@ -825,10 +805,6 @@ class Mercs(object):
             filtered_nodes.append(n)
         filtered_nodes = list(reversed(filtered_nodes))
         return filtered_nodes
-
-    def _update_g_list(self):
-        types = self._get_types(self.metadata)
-        self.g_list = [model_to_graph(m, types=types, idx=idx) for idx, m in enumerate(self.m_list)]
 
     def _update_t_codes(self):
         self.t_codes = (self.m_codes == TARG_ENCODING).astype(int)

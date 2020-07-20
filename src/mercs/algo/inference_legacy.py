@@ -4,14 +4,14 @@ import networkx as nx
 import numpy as np
 from dask import delayed
 
+from ..composition import o, x
+
 from ..utils.inference_tools import (
     pad_proba,
     select_nominal,
     select_numeric,
 )
-
-from ..composition import o, x
-from ..graph.network import get_ids
+from ..utils.inference_tools_legacy import get_ids
 from ..utils import debug_print
 
 VERBOSITY = 0
