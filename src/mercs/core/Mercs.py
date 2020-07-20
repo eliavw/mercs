@@ -168,7 +168,7 @@ class Mercs(object):
         inference={"inference", "infr", "inf"},
         classification={"classification", "classifier", "clf"},
         regression={"regression", "regressor", "rgr"},
-        mixed={"mixed", "mix"},
+        mixed={"mixed"},
         metadata={"metadata", "meta", "mtd"},
         evaluation={"evaluation", "evl"},
     )
@@ -279,10 +279,10 @@ class Mercs(object):
         )
 
         # Add MixedRandomForest configuration if the algorithm has been selected
-        self.mix_config = None
+        self.mixed_config = None
         if self.mixed_algorithm:
-            self.mix_config = self._default_config(self.mixed_algorithm)
-            self.configuration["mixed"] = self.mix_config
+            self.mixed_config = self._default_config(self.mixed_algorithm)
+            self.configuration["mixed"] = self.mixed_config
 
         # Update config based on random_state and kwargs
         self._update_config(random_state=random_state, **kwargs)
@@ -333,7 +333,7 @@ class Mercs(object):
             self.mixed_algorithm,
             self.classifier_config,
             self.regressor_config,
-            self.mix_config,
+            self.mixed_config,
             **self.induction_config
         )
 
