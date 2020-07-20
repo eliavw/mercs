@@ -16,6 +16,12 @@ from ..utils import debug_print
 
 VERBOSITY = 0
 
+"""
+This file has two inference algorithms: base and dask.
+Base is called 'legacy' in MERCS, maybe it should be deleted.
+Dask is an inference algorithm which makes use of the Dask parallel-computing library.
+"""
+
 
 def base_inference_algorithm(g):
     # Convert the graph to its functions
