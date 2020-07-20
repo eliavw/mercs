@@ -45,4 +45,6 @@ People involved in this project:
 * [Elia Van Wolputte](https://eliavw.github.io/)
 * Evgeniya Korneva
 * [Prof. Hendrik Blockeel](https://people.cs.kuleuven.be/~hendrik.blockeel/)
+* [Andrés Reverón Molina](https://andres.reveronmolina.me)
+
 

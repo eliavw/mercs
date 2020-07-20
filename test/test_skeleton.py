@@ -33,21 +33,21 @@ def test_init():
     # fit the model
     clf.fit(train, nominal_attributes=nominal_ids)
 
-    for idx, m in enumerate(clf.m_list):
-        msg = """
-        Model with index: {}
-        {}
-        """.format(idx, m.model)
-        print(msg)
-
-    for m_idx, m in enumerate(clf.m_list):
-        msg = """
-        Tree with id:          {}
-        has source attributes: {}
-        has target attributes: {},
-        and predicts {} attributes
-        """.format(m_idx, m.desc_ids, m.targ_ids, m.out_kind)
-        print(msg)
+    # for idx, m in enumerate(clf.m_list):
+    #     msg = """
+    #     Model with index: {}
+    #     {}
+    #     """.format(idx, m.model)
+    #     print(msg)
+    #
+    # for m_idx, m in enumerate(clf.m_list):
+    #     msg = """
+    #     Tree with id:          {}
+    #     has source attributes: {}
+    #     has target attributes: {},
+    #     and predicts {} attributes
+    #     """.format(m_idx, m.desc_ids, m.targ_ids, m.out_kind)
+    #    print(msg)
 
     # Single target
     # Query code is [0 0 0 1] where 0 = feature and 1 = target variable
