@@ -104,12 +104,9 @@ def nominal_data_node(g, node, m_list, c_list):
     classes = np.unique(np.hstack([c for _, c, _ in node_parents]))
 
     def vote(X):
-        # FIXME: argmax breaks for mixed trees because it has two dimensions in the second column+
-        # FIXME: with normal trees there's only one column
-        # nominal parents look ok
-        # the graph object is built without problems, but maybe wrongly
-        # the classes are extracted correctly
-        # X on the axis=1 has two values instead of(the required?) one
+        # FIXME: argmax breaks for mixed trees because it has an extra column corresponding to a
+        #  numeric variable which should not be here, it has to be removed:
+        #  [extra, [num, num]] -> [num, num]
         max_x = np.argmax(X, axis=1)
         return classes.take(max_x, axis=0)
 
