@@ -7,11 +7,14 @@ from ..utils.inference_tools import (
     select_numeric,
 )
 
+INPUTS = "inputs"
+COMPUTE = "compute"
+
 
 # Main algorithm
 def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
     """Add inference information to graph g
-    The information is added to the graph passed as parameter, no need object is returned
+    The information is added to the graph passed as parameter, no new object is returned
     
     Arguments:
         g {[type]} -- graph
@@ -72,8 +75,8 @@ def input_data_node(g, node, g_desc_ids):
         f1 = select_numeric(rel_idx)
         return f1(g.data)
 
-    g.nodes[node]["inputs"] = g_desc_ids.index(node[1])
-    g.nodes[node]["compute"] = f
+    g.nodes[node][INPUTS] = g_desc_ids.index(node[1])
+    g.nodes[node][COMPUTE] = f
 
 
 def imputation_node(g, node, i_list, nb_rows):
@@ -81,8 +84,8 @@ def imputation_node(g, node, i_list, nb_rows):
     def f(n):
         return i_list[node[1]].transform(dummy_array(n)).ravel()
 
-    g.nodes[node]["inputs"] = nb_rows
-    g.nodes[node]["compute"] = f
+    g.nodes[node][INPUTS] = nb_rows
+    g.nodes[node][COMPUTE] = f
 
 
 def numeric_data_node(g, node, m_list, c_list):
@@ -92,17 +95,23 @@ def numeric_data_node(g, node, m_list, c_list):
         collector = _numeric_inputs(g, parents)
         return np.mean(collector, axis=0)
 
-    g.nodes[node]["inputs"] = node_parents
-    g.nodes[node]["compute"] = f
+    g.nodes[node][INPUTS] = node_parents
+    g.nodes[node][COMPUTE] = f
 
 
 def nominal_data_node(g, node, m_list, c_list):
     node_parents = _nominal_parents(g, m_list, c_list, node)
-
     classes = np.unique(np.hstack([c for _, c, _ in node_parents]))
 
     def vote(X):
-        return classes.take(np.argmax(X, axis=1), axis=0)
+        # FIXME: argmax breaks for mixed trees because it has two dimensions in the second column+
+        # FIXME: with normal trees there's only one column
+        # nominal parents look ok
+        # the graph object is built without problems, but maybe wrongly
+        # the classes are extracted correctly
+        # X on the axis=1 has two values instead of(the required?) one
+        max_x = np.argmax(X, axis=1)
+        return classes.take(max_x, axis=0)
 
     def F(parents):
         collector = _nominal_inputs(g, parents, classes)
@@ -112,9 +121,9 @@ def nominal_data_node(g, node, m_list, c_list):
         return vote(F(parents))
 
     g.nodes[node]["classes"] = classes
-    g.nodes[node]["inputs"] = node_parents
+    g.nodes[node][INPUTS] = node_parents
     g.nodes[node]["compute_proba"] = F
-    g.nodes[node]["compute"] = F2
+    g.nodes[node][COMPUTE] = F2
 
 
 def model_node(g, node, m_list):
@@ -124,8 +133,8 @@ def model_node(g, node, m_list):
         X = _model_inputs(g, parents)
         return m_list[node[1]].predict(X)
 
-    g.nodes[node]["inputs"] = model_parents
-    g.nodes[node]["compute"] = f
+    g.nodes[node][INPUTS] = model_parents
+    g.nodes[node][COMPUTE] = f
 
     if hasattr(m_list[node[1]], "predict_proba"):
         def f2(parents):
@@ -142,7 +151,7 @@ def composite_node(g, node, c_list):
 # Helper functions
 def compute(g, node, proba=False):
     result_str = "result"
-    compute_str = "compute"
+    compute_str = COMPUTE
 
     if proba:
         result_str += "_proba"
@@ -150,7 +159,7 @@ def compute(g, node, proba=False):
 
     r = g.nodes[node].get(result_str, None)
     if r is None:
-        i = g.nodes[node].get("inputs")
+        i = g.nodes[node].get(INPUTS)
         f = g.nodes[node].get(compute_str)
         g.nodes[node][result_str] = f(i)
         return g.nodes[node][result_str]
@@ -159,17 +168,20 @@ def compute(g, node, proba=False):
 
 
 def _nominal_inputs(g, parents, classes):
-    collector = [
-        select_nominal(idx)(compute(g, n, proba=True))
-        if len(c) == len(classes)
-        else pad_proba(c, classes)(select_nominal(idx)(compute(g, n, proba=True)))
-        for idx, c, n in parents
-    ]
+    collector = []
+    for idx, c, n in parents:
+        if len(c) == len(classes):
+            collector.append(select_nominal(idx)(compute(g, n, proba=True)))
+        else:
+            collector.append(pad_proba(c, classes)(select_nominal(idx)(compute(g, n, proba=True))))
+
     return collector
 
 
 def _numeric_inputs(g, parents):
-    collector = [select_numeric(idx)(compute(g, n)) for idx, n in parents]
+    collector = []
+    for idx, n in parents:
+        collector.append(select_numeric(idx)(compute(g, n)))
     return collector
 
 
@@ -224,7 +236,6 @@ def _rel_idx(predecessor_idx, node_idx, kind, m_list, c_list):
 
 
 def _classes(predecessor_idx, rel_idx, kind, m_list, c_list):
-    # FIXME: breaks for mixed trees. list index out of range
     if kind == "M":
         return m_list[predecessor_idx].classes_[rel_idx]
     elif kind == "C":

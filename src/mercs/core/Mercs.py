@@ -22,7 +22,7 @@ from ..algo import (
     prediction,
     evaluation,
 )
-from ..composition import CompositeModel, NewCompositeModel, o
+from ..composition import CompositeModel, o
 from ..graph import build_diagram, compose_all, model_to_graph
 from ..utils import (
     TARG_ENCODING,
@@ -467,7 +467,7 @@ class Mercs(object):
             raise RecursionError(msg)
 
         n_component_models = self.metadata["n_component_models"]
-        q_model = NewCompositeModel(
+        q_model = CompositeModel(
             diagram,
             nominal_attributes=self.metadata["nominal_attributes"],
             n_component_models=n_component_models,
