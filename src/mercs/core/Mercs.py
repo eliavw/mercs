@@ -4,7 +4,7 @@ from inspect import signature
 from timeit import default_timer
 
 import numpy as np
-from networkx import NetworkXUnfeasible, find_cycle, topological_sort
+from networkx import NetworkXUnfeasible, find_cycle
 from sklearn.ensemble import (
     RandomForestClassifier,
     RandomForestRegressor,
@@ -32,7 +32,7 @@ from ..utils import (
     DecoratedDecisionTreeRegressor,
     DecoratedRandomForestClassifier
 )
-from ..visuals import save_diagram, show_diagram
+from ..visuals import save_diagram
 
 try:
     from xgboost import XGBClassifier as XGBC
@@ -435,9 +435,6 @@ class Mercs(object):
 
         return result
 
-    def get_params(self):
-        return self.params
-
     # Diagrams
     def _build_q_diagram(self, m_list, m_selection, composition=False):
         if isinstance(m_selection, tuple):
@@ -456,17 +453,6 @@ class Mercs(object):
             return build_diagram(
                 m_list, m_selection, self.q_code, prune=True, composition=composition
             )
-
-    def show_q_diagram(self, kind="svg", fi=False, ortho=False, index=None, **kwargs):
-
-        if isinstance(self.q_diagram, tuple) and index is None:
-            return show_diagram(self.c_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
-        elif isinstance(self.q_diagram, tuple):
-            return show_diagram(
-                self.q_diagram[index], kind=kind, fi=fi, ortho=ortho, **kwargs
-            )
-        else:
-            return show_diagram(self.q_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
 
     def save_diagram(self, fname=None, kind="svg", fi=False, ortho=False):
         return save_diagram(self.q_diagram, fname, kind=kind, fi=fi, ortho=ortho)
@@ -503,23 +489,6 @@ class Mercs(object):
         )
         return q_model
 
-    def _merge_q_models(self):
-        q_diagram = build_diagram(self.c_list, self.c_sel, self.q_code, prune=True)
-        return q_diagram
-
-    def _get_q_model(self, q_diagram, X):
-
-        self._add_imputer_function(q_diagram)
-
-        assert isinstance(self.inference_algorithm, inference_legacy.dask_inference_algorithm)
-        try:
-            self.inference_algorithm(q_diagram, X=X)
-        except NetworkXUnfeasible:
-            raise_recursion_error(q_diagram)
-
-        q_model = CompositeModel(q_diagram)
-        return q_model
-
     def _filter_m_list_m_codes(self):
         """Filtering out the failed models.
 
@@ -536,10 +505,6 @@ class Mercs(object):
 
     def _expand_m_list(self):
         self.m_list = list(itertools.chain.from_iterable(self.m_list))
-
-    def _add_model(self, model):
-        self.m_list.append(model)
-        self._consistent_data_structures()
 
     def _update_m_codes(self):
         self.m_codes = np.array(
@@ -562,10 +527,6 @@ class Mercs(object):
 
         self.m_feature_importances = init
 
-    def _update_m_score(self, binary_scores=False):
-        if binary_scores:
-            self.m_score = (self.m_codes == TARG_ENCODING).astype(float)
-
     # Imputer
     def _add_imputer_function(self, g):
 
@@ -578,13 +539,6 @@ class Mercs(object):
                 f_3 = np.ravel  # Return a vector, not array
 
                 g.nodes[n]["function"] = o(f_3, o(f_2, f_1))
-
-    # Add ids
-    @staticmethod
-    def _add_ids(g, desc_ids, targ_ids):
-        g.graph["desc_ids"] = set(desc_ids)
-        g.graph["targ_ids"] = set(targ_ids)
-        return g
 
     # Metadata
     def _default_metadata(self, X):
@@ -656,7 +610,6 @@ class Mercs(object):
             self._update_dictionary(self.configuration[kind], kind=kind, **kwargs)
 
     def _extra_checks_on_config(self):
-
         self._check_xgb_single_target()
 
     def _check_xgb_single_target(self):
@@ -713,17 +666,6 @@ class Mercs(object):
             for k in overlap:
                 dictionary[k] = kwargs[parameter_map[k]]
 
-    # Helpers
-    def _filter_X(self, X):
-        # Filter relevant input attributes
-        if X.shape[1] != len(self.q_compose.desc_ids):
-            indices = self._overlapping_indices(
-                self.q_desc_ids, self.q_compose.desc_ids
-            )
-            return X[:, indices]
-        else:
-            return X
-
     @staticmethod
     def _dummy_array(X):
         """
@@ -756,19 +698,13 @@ class Mercs(object):
 
     @staticmethod
     def _is_nominal(t):
-        condition_01 = t == np.dtype(int)
-        return condition_01
+        is_nominal = t == np.dtype(int)
+        return is_nominal
 
     @staticmethod
     def _is_numeric(t):
-        condition_01 = t == np.dtype(float)
-        return condition_01
-
-    @staticmethod
-    def _get_types(metadata):
-        nominal = {i: "nominal" for i in metadata["nominal_attributes"]}
-        numeric = {i: "numeric" for i in metadata["numeric_attributes"]}
-        return {**nominal, **numeric}
+        is_numeric = t == np.dtype(float)
+        return is_numeric
 
     @staticmethod
     def _overlapping_indices(a, b):
@@ -793,18 +729,3 @@ class Mercs(object):
         """
         return np.nonzero(np.in1d(a, b))[0]
 
-    @staticmethod
-    def filter_nodes(g):
-        # This is not as safe as it should be
-
-        sorted_nodes = list(topological_sort(g))
-        filtered_nodes = []
-        for n in reversed(sorted_nodes):
-            if g.nodes[n]["kind"] == "model":
-                break
-            filtered_nodes.append(n)
-        filtered_nodes = list(reversed(filtered_nodes))
-        return filtered_nodes
-
-    def _update_t_codes(self):
-        self.t_codes = (self.m_codes == TARG_ENCODING).astype(int)

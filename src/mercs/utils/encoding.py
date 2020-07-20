@@ -23,11 +23,10 @@ def encode_attribute(att, desc, targ):
     return code_int
 
 
-# Ugly but it just needs to be done once so deal with it. #FIXME: seriously?
+# Not an elegant solution but it will do for now
 DESC_ENCODING = encode_attribute(1, [1], [2])
 TARG_ENCODING = encode_attribute(2, [1], [2])
 MISS_ENCODING = encode_attribute(0, [1], [2])
-
 ENCODING = dict(desc=DESC_ENCODING, targ=TARG_ENCODING, miss=MISS_ENCODING)
 
 
