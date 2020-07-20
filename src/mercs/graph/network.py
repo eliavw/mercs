@@ -345,7 +345,7 @@ def compose(G, H):
 
     Returns
     -------
-    C: A new graph  with the same type as G
+    C: A new graph with the same type as G
 
     Notes
     -----
