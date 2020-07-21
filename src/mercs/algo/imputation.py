@@ -25,7 +25,6 @@ def nan_imputation(X, nominal_attributes):
 
 
 def skl_imputation(X, nominal_attributes):
-
     # Init
     n_rows, n_cols = X.shape
     i_list = []

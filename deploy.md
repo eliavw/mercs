@@ -211,14 +211,3 @@ What happens under the hood is that a `mkdocs build` is executed, and then the r
 Often overlooked, but this is right on top of your repository and hence the absolute perfect place to link to your project website. Hence, a cookiecutter-generated sentence to put there would be;
 
 > MERCS, cf. https://eliavw.github.io/mercs
-
-
-2.3 Docker
-----------
-
-Reproducible containers in their most popular form.
-
-2.4 Singularity
----------------
-
-Reproducible containers which can be run on HPC infrastructures. 

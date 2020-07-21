@@ -18,3 +18,4 @@ dependencies:
       - tornado
       - pydot
       - shap
+      - decision-tree-morfist

@@ -1,31 +1,10 @@
-import warnings
-from functools import partial, wraps
 import itertools
+import warnings
+
 import numpy as np
-import pandas as pd
-
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    RandomForestRegressor,
-    ExtraTreesClassifier,
-    ExtraTreesRegressor,
-)
-from sklearn.metrics import f1_score, r2_score
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-
-from joblib import Parallel, delayed
-from ..utils.decoration import decorate_tree
-
-from sklearn.preprocessing import normalize
 import shap
-
-
-try:
-    from xgboost import XGBClassifier as XGBC
-    from xgboost import XGBRegressor as XGBR
-except:
-    XGBC, XGBR = None, None
+from joblib import Parallel, delayed
+from sklearn.preprocessing import normalize
 
 try:
     from lightgbm import LGBMClassifier as LGBMC
@@ -46,21 +25,24 @@ except:
     WLC, WLR = None, None
 
 from ..composition.CanonicalModel import CanonicalModel
-from ..utils import code_to_query, debug_print, get_att, get_i_o
+from ..utils import code_to_query, get_i_o
 
 
 def base_induction_algorithm(
-    data,
-    m_codes,
-    metadata,
-    classifier,
-    regressor,
-    classifier_kwargs,
-    regressor_kwargs,
-    random_state=997,
-    calculation_method_feature_importances="default",
-    n_jobs=1,
-    verbose=0,
+        data,
+        m_codes,
+        metadata,
+        classifier,
+        regressor,
+        mixed,
+        classifier_kwargs,
+        regressor_kwargs,
+        mixed_kwargs,
+        random_state=997,
+        calculation_method_feature_importances="default",
+        min_nb_samples=10,
+        n_jobs=1,
+        verbose=0,
 ):
     """Basic induction algorithm. Models according to the m_codes it receives.
     
@@ -70,8 +52,10 @@ def base_induction_algorithm(
         metadata {dict} -- Metadata of MERCS
         classifier {Supported ML learner} -- Supported ML learner
         regressor {Supported ML learner} -- Supported ML learner
+        mixed {Supported ML mixed learner} -- Supported ML mixed learner
         classifier_kwargs {dict} -- Kwargs for classifier
         regressor_kwargs {dict} -- Kwargs for regressor
+        mixed_kwargs {dict} -- kwargs for mixed learner
     
     Keyword Arguments:
         random_state {int} -- Seed for random numbers (default: {997})
@@ -82,7 +66,7 @@ def base_induction_algorithm(
         ValueError: When trying to learn a model with both nominal and numeric outputs.
     
     Returns:
-        list -- List of learned ML-models
+        m_list -- List of learned ML-models
     """
 
     assert isinstance(data, np.ndarray)
@@ -108,7 +92,7 @@ def base_induction_algorithm(
 
     # Generate a list of random seeds.
     np.random.seed(random_state)
-    random_states = np.random.randint(10 ** 6, size=(len(ids)), dtype=int)
+    random_states = np.random.randint(10 ** 3, size=(len(ids)), dtype=int)
 
     parameters = _build_parameters(
         ids,
@@ -118,8 +102,11 @@ def base_induction_algorithm(
         numeric_attributes,
         regressor,
         regressor_kwargs,
+        mixed,
+        mixed_kwargs,
         random_states,
         calculation_method_feature_importances,
+        min_nb_samples,
         data,
     )
 
@@ -130,19 +117,19 @@ def base_induction_algorithm(
 
 
 def expand_induction_algorithm(
-    data,
-    m_codes,
-    metadata,
-    classifier,
-    regressor,
-    classifier_kwargs,
-    regressor_kwargs,
-    random_state=997,
-    n_jobs=1,
-    verbose=0,
+        data,
+        m_codes,
+        metadata,
+        classifier,
+        regressor,
+        classifier_kwargs,
+        regressor_kwargs,
+        random_state=997,
+        n_jobs=1,
+        verbose=0,
 ):
     """Basic induction algorithm. Models according to the m_codes it receives.
-    
+
     Arguments:
         data {np.ndarray} -- Input data
         m_codes {np.ndarray} -- Model codes
@@ -151,17 +138,17 @@ def expand_induction_algorithm(
         regressor {Supported ML learner} -- Supported ML learner
         classifier_kwargs {dict} -- Kwargs for classifier
         regressor_kwargs {dict} -- Kwargs for regressor
-    
+
     Keyword Arguments:
         random_state {int} -- Seed for random numbers (default: {997})
         n_jobs {int} -- Joblib can be used in training. (default: {1})
         verbose {int} -- Verbosity level for Joblib. (default: {0})
-    
+
     Raises:
         ValueError: When trying to learn a model with both nominal and numeric outputs.
-    
+
     Returns:
-        list -- List of learned ML-models
+        m_list -- List of learned ML-models
     """
     m_list = base_induction_algorithm(
         data,
@@ -169,8 +156,10 @@ def expand_induction_algorithm(
         metadata,
         classifier,
         regressor,
+        None,
         classifier_kwargs,
         regressor_kwargs,
+        None,
         random_state=random_state,
         n_jobs=n_jobs,
         verbose=verbose,
@@ -186,8 +175,23 @@ def _expand_m_list(m_list):
 
 
 def _build_models(parameters, n_jobs=1, verbose=0):
-    m_list = []
+    """ Method in charge of learning the models based on the given parameters. It can be done is parallel by specifying
+    the number of jobs.
+
+    Args:
+        parameters: configuration parameters of the models
+        n_jobs: number of parallel jobs
+        verbose: verbosity level for multi-core learning
+
+    Returns:
+        m_list: list of trained models
+
+    """
+
     if n_jobs < 2:
+        if n_jobs < 1:
+            msg = """Number of jobs needs to be at least 1. Assuming 1 job."""
+            warnings.warn(msg)
         m_list = [_learn_model(*a, **k) for a, k in parameters]
     else:
         msg = """Training is being parallellized using Joblib. Number of jobs = {}""".format(
@@ -202,77 +206,127 @@ def _build_models(parameters, n_jobs=1, verbose=0):
 
 
 def _build_parameters(
-    ids,
-    nominal_attributes,
-    classifier,
-    classifier_kwargs,
-    numeric_attributes,
-    regressor,
-    regressor_kwargs,
-    random_states,
-    calculation_method_feature_importances,
-    data,
+        ids,
+        nominal_attributes,
+        classifier,
+        classifier_kwargs,
+        numeric_attributes,
+        regressor,
+        regressor_kwargs,
+        mixed,
+        mixed_kwargs,
+        random_states,
+        calculation_method_feature_importances,
+        min_nb_samples,
+        data,
 ):
+    """ Creates the "parameters" object used by the models
+
+    Args:
+        ids: query ids in the form of [(descriptive, target), (descriptive, target), ...]
+        nominal_attributes: idxs of the nominal attributes
+        classifier: classifier algorithm
+        classifier_kwargs: classifier configuration
+        numeric_attributes: idxs of the numeric attributes
+        regressor: regressor algorithm
+        regressor_kwargs: regressor configuration
+        mixed: mixed learning algorithm
+        mixed_kwargs: mixed learner configuration
+        random_states:
+        calculation_method_feature_importances:
+        min_nb_samples: minimum number of samples
+        data: training data
+
+    Returns:
+        parameters: list of the model parameters
+            - data: training data
+            - desc_ids: descriptive parameters
+            - targ_ids: target parameters
+            - learner: learner algorithm
+            - out_kind: output data type(nominal, numeric, mixed)
+            - kwargs: model kwargs
+
+    """
     parameters = []
     for idx, (desc_ids, targ_ids) in enumerate(ids):
-
         if set(targ_ids).issubset(nominal_attributes):
             learner = classifier
             out_kind = "nominal"
-            metric = partial(f1_score, average="macro")
             kwargs = classifier_kwargs.copy()  # Copy is essential
+            kwargs["random_state"] = random_states[idx]
         elif set(targ_ids).issubset(numeric_attributes):
             learner = regressor
             out_kind = "numeric"
-            metric = r2_score
             kwargs = regressor_kwargs.copy()  # Copy is essential
+            kwargs["random_state"] = random_states[idx]
         else:
-            msg = """
-            Cannot learn mixed (i.e. nominal+numeric) models
-            """
-            raise ValueError(msg)
+            # Case when target ids contain both numerical and nominal data
+            learner = mixed
+            out_kind = "mixed"
+            kwargs = mixed_kwargs.copy()
+            kwargs["classification_targets"] = np.where(
+                np.array(list(nominal_attributes)) == np.array(targ_ids)
+            )[0].tolist()
 
-        kwargs["random_state"] = random_states[idx]
-        kwargs[
-            "calculation_method_feature_importances"
-        ] = calculation_method_feature_importances
+        kwargs["calculation_method_feature_importances"] = calculation_method_feature_importances
+        kwargs["min_nb_samples"] = min_nb_samples
 
         kwargs = _add_categorical_features_to_kwargs(
             learner, desc_ids, nominal_attributes, kwargs
         )  # This is learner-specific
 
         # Learn a model for current desc_ids-targ_ids combo
-        args = (data, desc_ids, targ_ids, learner, out_kind, metric)
+        args = (data, desc_ids, targ_ids, learner, out_kind)
         parameters.append((args, kwargs))
 
     return parameters
 
 
 def _learn_model(
-    data,
-    desc_ids,
-    targ_ids,
-    learner,
-    out_kind,
-    metric,
-    filter_nan=True,
-    min_nb_samples=10,
-    calculation_method_feature_importances="default",
-    **kwargs
+        data,
+        desc_ids,
+        targ_ids,
+        learner,
+        out_kind,
+        filter_nan=True,
+        min_nb_samples=10,
+        calculation_method_feature_importances="default",
+        **kwargs
 ):
-    """
-    Learn a model from the data.
+    """Learn a single model from the data.
 
     The arguments of this function determine specifics on which task,
     which learner etc.
 
     Model is a machine learning method that has a .fit() method.
+
+    Args:
+        data: training data
+        desc_ids: ids of the descriptive attributes
+        targ_ids: ids of the target attributes
+        learner: learning algorithm
+        out_kind: type of the ouput data (numeric, nominal or mixed)
+        filter_nan: indicates if NaN values should be filtered
+        min_nb_samples: minimum number of samples
+        calculation_method_feature_importances:
+        **kwargs: keyword argument
+
+    Returns:
+        model: the learned model
     """
     assert learner is not None
 
     i, o = get_i_o(data, desc_ids, targ_ids, filter_nan=filter_nan)
 
     if i.shape[0] < min_nb_samples:
+        msg = """
+        Only {} samples available for training.
+        min_nb_samples is set to {}.
+        Therefore no training occured.
+        """.format(
+            i.shape[0], min_nb_samples
+        )
+        warnings.warn(msg)
         return None
     else:
         # Pre-processing
@@ -310,7 +364,7 @@ def _calculate_shap_values(model, X):
     if isinstance(shap_values, list):
         r = _summarize_shaps(shap_values[0])
     else:
-         r = _summarize_shaps(shap_values)
+        r = _summarize_shaps(shap_values)
     return r
 
 
@@ -331,34 +385,6 @@ def _add_categorical_features_to_kwargs(learner, desc_ids, nominal_attributes, k
         kwargs["categorical_feature"] = cat_features
 
     return kwargs
-
-
-def _score_model(model, metric, y_test, y_pred, multi_target):
-    try:
-        performance = _calc_performance(y_test, y_pred, metric, multi_target)
-    except ValueError as e:
-        mean = np.nanmean(y_pred)
-        if not np.isfinite(mean):
-            warnings.warn(
-                """We have a model that cannot solve anything. Something shady might be going on."""
-            )
-            performance = 0
-        else:
-            y_pred[np.isnan(y_pred)] = mean
-            assert np.all(np.isfinite(y_pred))
-            performance = _calc_performance(y_test, y_pred, metric, multi_target)
-
-    return performance
-
-
-def _calc_performance(y_test, y_pred, metric, multi_target):
-    if multi_target:
-        performance = [
-            metric(y_test[:, i], y_pred[:, i]) for i in range(y_test.shape[1])
-        ]
-    else:
-        performance = metric(y_test, y_pred)
-    return performance
 
 
 def _get_cat_features(desc_ids, nominal_ids):

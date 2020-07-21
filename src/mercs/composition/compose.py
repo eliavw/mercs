@@ -1,7 +1,4 @@
-from functools import lru_cache
-
 def o(f1, f2):
-
     def sequential_composition(*function_arguments):
         return f1(f2(*function_arguments))
 
@@ -9,6 +6,9 @@ def o(f1, f2):
 
 
 def x(*functions, return_type=tuple):
+    """
+    Apparently not used anywhere.
+    """
     def parallel_composition(*function_arguments):
         if len(function_arguments) == 1:
             res = return_type([f(function_arguments[0]) for f in functions])
