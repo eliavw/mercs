@@ -45,7 +45,6 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
         g.data = data[:, g_descriptive_ids]
     else:
         g.data = None
-
     for node in g.nodes():
         if _data_node(node[0]):
             in_degree = g.in_degree(node)

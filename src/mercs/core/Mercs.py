@@ -419,7 +419,6 @@ class Mercs(object):
             self.q_model = self._build_q_model(X, self.c_diagram)
         else:
             self.q_model = self._build_q_model(X, self.q_diagram)
-
         toc_inference = default_timer()
 
         tic_dask = default_timer()
