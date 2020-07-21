@@ -36,9 +36,11 @@ def select_numeric(idx):
 
 
 def select_nominal(idx):
-    def select(X):
+    def select(X, model_type):
         if isinstance(X, list):
             return X[idx]
+        elif model_type == "mixed":
+            return X[:, idx].tolist()
         elif isinstance(X, np.ndarray):
             return X
 

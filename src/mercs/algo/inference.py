@@ -103,12 +103,9 @@ def numeric_data_node(g, node, m_list, c_list):
 
 def nominal_data_node(g, node, m_list, c_list):
     node_parents = _get_parents(g, m_list, c_list, node, nominal=True)
-    classes = np.unique(np.hstack([c for _, c, _ in node_parents]))
+    classes = np.unique(np.hstack([c for _, c, _, _ in node_parents]))
 
     def vote(X):
-        # FIXME: argmax breaks for mixed trees because it has an extra column corresponding to a
-        #  numeric variable which should not be here, it has to be removed:
-        #  [extra, [num, num]] -> [num, num]
         max_x = np.argmax(X, axis=1)
         return classes.take(max_x, axis=0)
 
@@ -169,11 +166,18 @@ def compute(g, node, proba=False):
 def _nominal_inputs(g, parents, classes):
     # Returns the 'nominal' inputs of the parent nodes
     collector = []
-    for rel_idx, parent_classes, n in parents:
+    for rel_idx, parent_classes, n, model_type in parents:
         if len(parent_classes) == len(classes):
-            collector.append(select_nominal(rel_idx)(compute(g, n, proba=True)))
+            select_nom = select_nominal(rel_idx)
+            X = compute(g, n, proba=True)
+            selected = select_nom(X, model_type)
+            collector.append(selected)
         else:
-            collector.append(pad_proba(parent_classes, classes)(select_nominal(rel_idx)(compute(g, n, proba=True))))
+            prob = pad_proba(parent_classes, classes)
+            select_nom = select_nominal(rel_idx)
+            X = compute(g, n, proba=True)
+            selected = prob(select_nom(X, model_type))
+            collector.append(selected)
 
     return collector
 
@@ -181,8 +185,10 @@ def _nominal_inputs(g, parents, classes):
 def _numeric_inputs(g, parents):
     # Returns the 'numeric' inputs of the parent nodes
     collector = []
-    for idx, n in parents:
-        collector.append(select_numeric(idx)(compute(g, n)))
+    for rel_idx, n, model_type in parents:
+        select_num = select_numeric(rel_idx)
+        X = compute(g, n)
+        collector.append(select_num(X))
     return collector
 
 
@@ -198,6 +204,7 @@ def _get_parents(g, m_list, c_list, node, nominal=False):
     parents = []
     for kind, predecessor_idx in g.predecessors(node):
         rel_idx = _rel_idx(predecessor_idx, node[1], kind, m_list, c_list)
+        model_type = m_list[predecessor_idx].out_kind
         if nominal:
             classes = _classes(
                 predecessor_idx,
@@ -206,9 +213,9 @@ def _get_parents(g, m_list, c_list, node, nominal=False):
                 m_list,
                 c_list
             )
-            parents.append((rel_idx, classes, (kind, predecessor_idx)))
+            parents.append((rel_idx, classes, (kind, predecessor_idx), model_type))
         else:
-            parents.append((rel_idx, (kind, predecessor_idx)))
+            parents.append((rel_idx, (kind, predecessor_idx), model_type))
 
     return parents
 
