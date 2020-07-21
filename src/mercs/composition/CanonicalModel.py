@@ -77,7 +77,7 @@ class CanonicalModel(object):
             self.predict_proba = self.model.predict_proba
 
             # add labels of nominal target variables
-            # add dummy label -1 for numeric target variables
+            # add dummy label None for numeric target variables
             # this is needed because of the way the graph is built
             self.classes_ = []
             self.n_classes_ = []

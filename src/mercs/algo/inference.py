@@ -15,7 +15,9 @@ COMPUTE = "compute"
 def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
     """Add inference information to graph g
     The information is added to the graph passed as parameter, no new object is returned
-    
+
+    reminder: node[1] = node attribute id
+
     Arguments:
         g {[type]} -- graph
         m_list {[type]} -- models
@@ -89,7 +91,7 @@ def imputation_node(g, node, i_list, nb_rows):
 
 
 def numeric_data_node(g, node, m_list, c_list):
-    node_parents = _numeric_parents(g, m_list, c_list, node)
+    node_parents = _get_parents(g, m_list, c_list, node)
 
     def f(parents):
         collector = _numeric_inputs(g, parents)
@@ -100,7 +102,7 @@ def numeric_data_node(g, node, m_list, c_list):
 
 
 def nominal_data_node(g, node, m_list, c_list):
-    node_parents = _nominal_parents(g, m_list, c_list, node)
+    node_parents = _get_parents(g, m_list, c_list, node, nominal=True)
     classes = np.unique(np.hstack([c for _, c, _ in node_parents]))
 
     def vote(X):
@@ -167,11 +169,11 @@ def compute(g, node, proba=False):
 def _nominal_inputs(g, parents, classes):
     # Returns the 'nominal' inputs of the parent nodes
     collector = []
-    for idx, c, n in parents:
-        if len(c) == len(classes):
-            collector.append(select_nominal(idx)(compute(g, n, proba=True)))
+    for rel_idx, parent_classes, n in parents:
+        if len(parent_classes) == len(classes):
+            collector.append(select_nominal(rel_idx)(compute(g, n, proba=True)))
         else:
-            collector.append(pad_proba(c, classes)(select_nominal(idx)(compute(g, n, proba=True))))
+            collector.append(pad_proba(parent_classes, classes)(select_nominal(rel_idx)(compute(g, n, proba=True))))
 
     return collector
 
@@ -191,29 +193,22 @@ def _model_inputs(g, parents):
     return collector
 
 
-def _numeric_parents(g, m_list, c_list, node):
-    # Returns the 'numeric' parents of a node
-    parents = []
-    for kind, predecessor_idx in g.predecessors(node):
-        rel_idx = _rel_idx(predecessor_idx, node[1], kind, m_list, c_list)
-        parents.append((rel_idx, (kind, predecessor_idx)))
-
-    return parents
-
-
-def _nominal_parents(g, m_list, c_list, node):
+def _get_parents(g, m_list, c_list, node, nominal=False):
     # Returns the 'nominal' parents of a node
     parents = []
     for kind, predecessor_idx in g.predecessors(node):
         rel_idx = _rel_idx(predecessor_idx, node[1], kind, m_list, c_list)
-        classes = _classes(
-            predecessor_idx,
-            rel_idx,
-            kind,
-            m_list,
-            c_list
-        )
-        parents.append((rel_idx, classes, (kind, predecessor_idx)))
+        if nominal:
+            classes = _classes(
+                predecessor_idx,
+                rel_idx,
+                kind,
+                m_list,
+                c_list
+            )
+            parents.append((rel_idx, classes, (kind, predecessor_idx)))
+        else:
+            parents.append((rel_idx, (kind, predecessor_idx)))
 
     return parents
 

@@ -46,7 +46,7 @@ class CompositeModel(object):
 
     def get_confidences(self, X=None, redo=False, normalize_outputs=True):
 
-        confidences = [np.array([[1.0]]) for t in self.targ_ids]
+        confidences = [np.array([[1.0]]) for _ in self.targ_ids]
         nominal_prb = self.predict_proba(X, redo=redo)
 
         for targ_id, proba in zip(self.nominal_targ_ids, nominal_prb):
