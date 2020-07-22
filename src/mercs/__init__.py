@@ -1,6 +1,6 @@
 from pkg_resources import get_distribution, DistributionNotFound
 
-from . import algo, composition, core, graph, tests, utils, visuals
+from . import algo, composition, core, graph, utils, visuals
 from .core import Mercs
 
 try:

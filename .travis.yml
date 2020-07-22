@@ -5,11 +5,11 @@ python:
   - 3.7
 
 install:
-    - source test/travis_setup.sh
+    - source travis_setup.sh
 
 script:
     - python setup.py develop
-    - pytest test -v
+    - pytest tests -v
 
 after_script:
     - travis-cleanup

@@ -29,4 +29,5 @@ Layout for machine learning research projects.
 +-- setup.cfg
 +-- setup.py
 +-- structure.md
++-- travis_setup.sh
 ```
