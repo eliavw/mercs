@@ -17,6 +17,7 @@ after_script:
 notifications:
   email:
     recipients:
+      - elia.vanwolputte@gmail.com
       - andres@reveronmolina.me
     on_success: change  # default: change
     on_failure: always  # default: always
