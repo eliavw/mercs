@@ -1,6 +1,5 @@
 from src.mercs.core import Mercs
-from src.mercs.tests import default_dataset
-import pandas as pd
+from src.mercs.test import default_dataset
 import numpy as np
 
 
@@ -8,8 +7,6 @@ def test_init():
 
     # load default dataset and print head
     train, test = default_dataset(n_features=3)
-    df = pd.DataFrame(train)
-    df.head()
 
     # initialise MERCS model
     # the nb_targets defines the number of targets to use while fitting the model
