@@ -1,12 +1,12 @@
-numpy~=1.18.5
+numpy~=1.19.1
 shap~=0.35.0
 joblib~=0.16.0
 scikit-learn~=0.23.1
-lightgbm~=2.3.0
+lightgbm~=2.3.1
 catboost~=0.23.2
 networkx~=2.4
-dask~=2.20.0
-graphviz~=2.40.1
+dask~=2.21.0
+graphviz~=0.14.1
 pandas~=1.0.5
 pydot~=1.4.1
 ipython~=7.16.1

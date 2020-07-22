@@ -9,7 +9,7 @@ install:
 
 script:
     - python setup.py develop
-    - pytest test -v
+    - pytest tests -v
 
 after_script:
     - travis-cleanup
