@@ -14,7 +14,7 @@ lightgbm = "^2.3.1"
 catboost = "^0.23.2"
 networkx = "^2.4"
 dask = "^2.21.0"
-decision-tree-morfist = "^0.1.4"
+decision-tree-morfist = "^0.1.5"
 
 [tool.poetry.dev-dependencies]
 graphviz = "^0.14.1"

@@ -59,7 +59,7 @@ except:
     WLC, WLR = None, None
 
 try:
-    from morfist.core.MixedRandomForest import MixedRandomForest as MRF
+    from morfist import MixedRandomForest as MRF
 except:
     MRF = None
 

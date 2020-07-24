@@ -101,7 +101,7 @@ description = "Multi-target Random Forest implementation that can mix both class
 name = "decision-tree-morfist"
 optional = false
 python-versions = ">=3.8.0,<4.0.0"
-version = "0.1.4"
+version = "0.1.5"
 
 [package.dependencies]
 numba = ">=0.50.1,<0.51.0"
@@ -595,7 +595,7 @@ python-versions = "*"
 version = "0.2.5"
 
 [metadata]
-content-hash = "8d196b0491689c547f5ea43254d2570b350fa497ba5f9fb21d5188db00476924"
+content-hash = "df6cbbae56102aac1b718ea8aab6f58cd33eef620f2b458cf7e4e0e7b1144bb1"
 lock-version = "1.0"
 python-versions = "^3.8.0"
 
@@ -646,8 +646,8 @@ dask = [
     {file = "dask-2.21.0.tar.gz", hash = "sha256:c188195a7c73e0d27af5308e8ac7d62b6d1e95b670280db2c102d737bf711b55"},
 ]
 decision-tree-morfist = [
-    {file = "decision-tree-morfist-0.1.4.tar.gz", hash = "sha256:3c8c269ef567077a04680e5d9d1b368aa7e21274e77d96900395712221afec84"},
-    {file = "decision_tree_morfist-0.1.4-py3-none-any.whl", hash = "sha256:e8ec658e9a4cc9e52c2bde60edb932ddc99a9e98225d49cfe49a057565602c3f"},
+    {file = "decision-tree-morfist-0.1.5.tar.gz", hash = "sha256:81286c90d1007f528fc3ea8e3c72f69e85f8a727da7e268a35af111fd75f99ba"},
+    {file = "decision_tree_morfist-0.1.5-py3-none-any.whl", hash = "sha256:f70f1bf86e294b2a26079b652cd60f6451b2a31aeb535575504e03e467e46e74"},
 ]
 decorator = [
     {file = "decorator-4.4.2-py2.py3-none-any.whl", hash = "sha256:41fa54c2a0cc4ba648be4fd43cff00aedf5b9465c9bf18d64325bc225f08f760"},
