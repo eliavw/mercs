@@ -59,7 +59,7 @@ except:
     WLC, WLR = None, None
 
 try:
-    from morfist import MixedRandomForest
+    from morfist.core.MixedRandomForest import MixedRandomForest as MRF
 except:
     MRF = None
 
@@ -153,8 +153,8 @@ class Mercs(object):
     )
 
     mixed_algorithms = dict(
-        morfist=MixedRandomForest,
-        default=MixedRandomForest,
+        morfist=MRF,
+        default=MRF,
     )
 
     # Used in parse kwargs to identify parameters. If this identification goes wrong, you are sending settings

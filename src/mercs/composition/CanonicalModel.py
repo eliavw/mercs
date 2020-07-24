@@ -9,7 +9,7 @@ except:
     CBC = None
 
 try:
-    from morfist import MixedRandomForest as MRF
+    from morfist.core.MixedRandomForest import MixedRandomForest as MRF
 except:
     MRF = None
 
