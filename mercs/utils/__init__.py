@@ -20,3 +20,4 @@ from .decoration import (
 
 from .data_handling import(get_i_o)
 
+from .test_data import load_iris, default_dataset

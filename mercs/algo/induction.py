@@ -24,8 +24,8 @@ try:
 except:
     WLC, WLR = None, None
 
-from ..composition.CanonicalModel import CanonicalModel
-from ..utils import code_to_query, get_i_o
+from mercs.composition.CanonicalModel import CanonicalModel
+from mercs.utils import code_to_query, get_i_o
 
 
 def base_induction_algorithm(

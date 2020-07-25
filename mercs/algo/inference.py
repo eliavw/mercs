@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..utils.inference_tools import (
+from mercs.utils.inference_tools import (
     dummy_array,
     pad_proba,
     select_nominal,

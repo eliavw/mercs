@@ -13,7 +13,7 @@ from sklearn.ensemble import (
 )
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
-from ..algo import (
+from mercs.algo import (
     imputation,
     induction,
     inference_legacy,
@@ -22,9 +22,9 @@ from ..algo import (
     prediction,
     evaluation,
 )
-from ..composition import CompositeModel, o
-from ..graph import build_diagram
-from ..utils import (
+from mercs.composition import CompositeModel, o
+from mercs.graph import build_diagram
+from mercs.utils import (
     TARG_ENCODING,
     code_to_query,
     query_to_code,
@@ -32,7 +32,6 @@ from ..utils import (
     DecoratedDecisionTreeRegressor,
     DecoratedRandomForestClassifier
 )
-from ..visuals import save_diagram
 
 try:
     from xgboost import XGBClassifier as XGBC
@@ -62,20 +61,6 @@ try:
     from morfist import MixedRandomForest as MRF
 except:
     MRF = None
-
-
-def raise_recursion_error(q_diagram):
-    cycle = find_cycle(q_diagram, orientation="original")
-    msg = """
-                Topological sort failed, investigate diagram to debug.
-                
-                I will never be able to squeeze a prediction out of a diagram with a loop.
-                
-                Cycle was:  {}
-                """.format(
-        cycle
-    )
-    raise RecursionError(msg)
 
 
 class Mercs(object):
@@ -452,9 +437,6 @@ class Mercs(object):
             return build_diagram(
                 m_list, m_selection, self.q_code, prune=True, composition=composition
             )
-
-    def save_diagram(self, fname=None, kind="svg", fi=False, ortho=False):
-        return save_diagram(self.q_diagram, fname, kind=kind, fi=fi, ortho=ortho)
 
     # Inference
     def _build_q_model(self, X, diagram):

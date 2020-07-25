@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 
-from ..utils import TARG_ENCODING
+from mercs.utils import TARG_ENCODING
 
 
 def base_selection_algorithm(metadata, generate_mixed_codes, nb_targets=1, nb_iterations=1, random_state=997):

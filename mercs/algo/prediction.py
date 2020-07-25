@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 from sklearn.preprocessing import normalize
 
-from ..utils import code_to_query, get_att_2d, TARG_ENCODING
+from mercs.utils import code_to_query, get_att_2d, TARG_ENCODING
 
 EPSILON = 0.00001
 

@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 
-from ..utils import code_to_query
+from mercs.utils import code_to_query
 
 NODE_PREFIXES = dict(data="D", model="M", imputation="I", composition="C")
 NODE_KINDS = {v: k for k, v in NODE_PREFIXES.items()}
