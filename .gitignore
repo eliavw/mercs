@@ -39,3 +39,6 @@ docs/_build/
 
 # mkdocs build
 site/
+
+# VSCode config
+.vscode
