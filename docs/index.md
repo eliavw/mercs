@@ -10,6 +10,11 @@ Easy via pip:
 pip install mercs-mixed
 ```
 
+Dask is a required dependency that needs to be installed separately:
+```
+python -m pip install "dask[complete]"
+```
+
 ## Website
 
 Cf. [https://systemallica.github.io/mercs/](https://systemallica.github.io/mercs/)
