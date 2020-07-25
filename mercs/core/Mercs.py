@@ -32,6 +32,7 @@ from mercs.utils import (
     DecoratedDecisionTreeRegressor,
     DecoratedRandomForestClassifier
 )
+from mercs.visuals import show_diagram
 
 try:
     from xgboost import XGBClassifier as XGBC
@@ -419,6 +420,16 @@ class Mercs(object):
 
         return result
 
+    def show_q_diagram(self, kind="svg", fi=False, ortho=False, index=None, **kwargs):
+        if isinstance(self.q_diagram, tuple) and index is None:
+            return show_diagram(self.c_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
+        elif isinstance(self.q_diagram, tuple):
+            return show_diagram(
+                self.q_diagram[index], kind=kind, fi=fi, ortho=ortho, **kwargs
+            )
+        else:
+            return show_diagram(self.q_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
+
     # Diagrams
     def _build_q_diagram(self, m_list, m_selection, composition=False):
         if isinstance(m_selection, tuple):
@@ -709,4 +720,3 @@ class Mercs(object):
 
         """
         return np.nonzero(np.in1d(a, b))[0]
-
