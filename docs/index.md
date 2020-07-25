@@ -12,7 +12,7 @@ pip install mercs-mixed
 
 Dask is a required dependency that needs to be installed separately:
 ```
-python -m pip install "dask[complete]"
+python -m pip install "dask[delayed]"
 ```
 
 ## Website
