@@ -36,3 +36,6 @@ MANIFEST
 
 # Sphinx documentation
 docs/_build/
+
+# mkdocs build
+site/
