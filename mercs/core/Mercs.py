@@ -13,7 +13,7 @@ from sklearn.ensemble import (
 )
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
-from ..algo import (
+from mercs.algo import (
     imputation,
     induction,
     inference_legacy,
@@ -22,9 +22,9 @@ from ..algo import (
     prediction,
     evaluation,
 )
-from ..composition import CompositeModel, o
-from ..graph import build_diagram
-from ..utils import (
+from mercs.composition import CompositeModel, o
+from mercs.graph import build_diagram
+from mercs.utils import (
     TARG_ENCODING,
     code_to_query,
     query_to_code,
@@ -32,7 +32,7 @@ from ..utils import (
     DecoratedDecisionTreeRegressor,
     DecoratedRandomForestClassifier
 )
-from ..visuals import save_diagram
+from mercs.visuals import show_diagram
 
 try:
     from xgboost import XGBClassifier as XGBC
@@ -59,23 +59,9 @@ except:
     WLC, WLR = None, None
 
 try:
-    from morfist import MixedRandomForest
+    from morfist import MixedRandomForest as MRF
 except:
     MRF = None
-
-
-def raise_recursion_error(q_diagram):
-    cycle = find_cycle(q_diagram, orientation="original")
-    msg = """
-                Topological sort failed, investigate diagram to debug.
-                
-                I will never be able to squeeze a prediction out of a diagram with a loop.
-                
-                Cycle was:  {}
-                """.format(
-        cycle
-    )
-    raise RecursionError(msg)
 
 
 class Mercs(object):
@@ -153,8 +139,8 @@ class Mercs(object):
     )
 
     mixed_algorithms = dict(
-        morfist=MixedRandomForest,
-        default=MixedRandomForest,
+        morfist=MRF,
+        default=MRF,
     )
 
     # Used in parse kwargs to identify parameters. If this identification goes wrong, you are sending settings
@@ -434,6 +420,16 @@ class Mercs(object):
 
         return result
 
+    def show_q_diagram(self, kind="svg", fi=False, ortho=False, index=None, **kwargs):
+        if isinstance(self.q_diagram, tuple) and index is None:
+            return show_diagram(self.c_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
+        elif isinstance(self.q_diagram, tuple):
+            return show_diagram(
+                self.q_diagram[index], kind=kind, fi=fi, ortho=ortho, **kwargs
+            )
+        else:
+            return show_diagram(self.q_diagram, kind=kind, fi=fi, ortho=ortho, **kwargs)
+
     # Diagrams
     def _build_q_diagram(self, m_list, m_selection, composition=False):
         if isinstance(m_selection, tuple):
@@ -452,9 +448,6 @@ class Mercs(object):
             return build_diagram(
                 m_list, m_selection, self.q_code, prune=True, composition=composition
             )
-
-    def save_diagram(self, fname=None, kind="svg", fi=False, ortho=False):
-        return save_diagram(self.q_diagram, fname, kind=kind, fi=fi, ortho=ortho)
 
     # Inference
     def _build_q_model(self, X, diagram):
@@ -727,4 +720,3 @@ class Mercs(object):
 
         """
         return np.nonzero(np.in1d(a, b))[0]
-

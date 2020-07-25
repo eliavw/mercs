@@ -4,15 +4,15 @@ import networkx as nx
 import numpy as np
 from dask import delayed
 
-from ..composition import o, x
+from mercs.composition import o, x
 
-from ..utils.inference_tools import (
+from mercs.utils.inference_tools import (
     pad_proba,
     select_nominal,
     select_numeric,
 )
-from ..utils.inference_tools_legacy import get_ids
-from ..utils import debug_print
+from mercs.utils.inference_tools_legacy import get_ids
+from mercs.utils import debug_print
 
 VERBOSITY = 0
 

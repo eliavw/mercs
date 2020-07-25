@@ -3,8 +3,8 @@ from sklearn.preprocessing import maxabs_scale, minmax_scale
 from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.model_selection import train_test_split
 
-from ..utils.inference_tools import dummy_array
-from ..utils import TARG_ENCODING, get_i_o
+from mercs.utils.inference_tools import dummy_array
+from mercs.utils import TARG_ENCODING, get_i_o
 
 
 def dummy_evaluation(m_codes):

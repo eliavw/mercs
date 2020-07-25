@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.preprocessing import normalize
 
-from ..algo.inference import compute
+from mercs.algo.inference import compute
 
 VERBOSITY = 0
 

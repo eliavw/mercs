@@ -51,7 +51,6 @@ def dotstring_to_image(dotstring):
 def show_diagram(diagram, kind="svg", fi=False, ortho=False, **kwargs):
 
     try:
-        get_ipython()
         dotstring = diagram_to_dotstring(diagram, fi_labels=fi, ortho=ortho)
 
         f_img, f_vec = dotstring_to_image(dotstring)

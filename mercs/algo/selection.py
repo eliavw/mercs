@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 
-from ..utils import TARG_ENCODING
+from mercs.utils import TARG_ENCODING
 
 
 def base_selection_algorithm(metadata, generate_mixed_codes, nb_targets=1, nb_iterations=1, random_state=997):
@@ -26,6 +26,7 @@ def random_selection_algorithm(
             codes.append(
                 random_selection_algorithm(
                     metadata,
+                    generate_mixed_codes,
                     nb_targets=nb_targets,
                     nb_iterations=nb_iterations,
                     fraction_missing=f,
@@ -36,7 +37,6 @@ def random_selection_algorithm(
         return m_codes
 
     else:
-        # Init
         np.random.seed(random_state)
         nb_attributes = metadata["n_attributes"]
         nb_targets = _set_nb_targets(nb_targets, nb_attributes)

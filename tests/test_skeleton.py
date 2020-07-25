@@ -1,5 +1,5 @@
-from src.mercs.core import Mercs
-from tests import default_dataset
+from mercs import Mercs
+from mercs.utils import default_dataset
 import numpy as np
 
 

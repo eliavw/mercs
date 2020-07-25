@@ -5,7 +5,7 @@ description = "MERCS: Multi-Directional Ensembles of Regression and Classificati
 authors = ["Andrés Reverón Molina <andres@reveronmolina.me>"]
 
 [tool.poetry.dependencies]
-python = "^3.8.5"
+python = "^3.8.0"
 numpy = "^1.19.1"
 shap = "^0.35.0"
 joblib = "^0.16.0"
@@ -14,7 +14,7 @@ lightgbm = "^2.3.1"
 catboost = "^0.23.2"
 networkx = "^2.4"
 dask = "^2.21.0"
-decision-tree-morfist = "^0.1.1"
+decision-tree-morfist = "^0.1.5"
 
 [tool.poetry.dev-dependencies]
 graphviz = "^0.14.1"
