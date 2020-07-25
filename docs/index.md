@@ -7,7 +7,7 @@ MERCS stands for **multi-directional ensembles of classification and regression 
 Easy via pip:
 
 ```
-pip install mercs
+pip install mercs-mixed
 ```
 
 ## Website

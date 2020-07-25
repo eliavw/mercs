@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 0.0.41
+Version 0.0.42
 ===========
 
 - Added the option to work with mixed(regression and classification) tasks
