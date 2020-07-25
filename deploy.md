@@ -17,6 +17,8 @@ git clone https://github.com/systemallica/mercs
 
 The project uses [Poetry](https://python-poetry.org) as dependency manager, which also creates a `virtualenv` automatically on install. So all you need to do is `poetry install`. 
 
+[Dask](https://dask.org) needs a special installation, so you also need to run `python -m pip install "dask[complete]"`.
+
 You can now navigate to the `/tests` folder and write your own experiments.
 
 1.3 Continuous Integration
