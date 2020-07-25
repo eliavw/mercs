@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mercs-mixed"
-version = "0.0.42"
+version = "0.0.43"
 description = "MERCS: Multi-Directional Ensembles of Regression and Classification treeS"
 authors = ["Andrés Reverón Molina <andres@reveronmolina.me>", "Elia vw <elia.vw@gmail.com>"]
 license = "MIT"
@@ -19,15 +19,16 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.8.0"
-numpy = "^1.19.1"
-shap = "^0.35.0"
-joblib = "^0.16.0"
-scikit-learn = "^0.23.1"
-lightgbm = "^2.3.1"
 catboost = "^0.23.2"
-networkx = "^2.4"
-dask = "^2.21.0"
 decision-tree-morfist = "^0.1.5"
+ipython = "^7.16.1"
+joblib = "^0.16.0"
+lightgbm = "^2.3.1"
+networkx = "^2.4"
+numpy = "^1.19.1"
+pydot = "^1.4.1"
+scikit-learn = "^0.23.1"
+shap = "^0.35.0"
 
 [tool.poetry.dev-dependencies]
 graphviz = "^0.14.1"
