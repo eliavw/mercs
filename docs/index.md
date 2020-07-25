@@ -4,7 +4,7 @@ MERCS stands for **multi-directional ensembles of classification and regression 
 
 ## Installation
 
-Easy via pip;
+Easy via pip:
 
 ```
 pip install mercs
@@ -12,15 +12,15 @@ pip install mercs
 
 ## Website
 
-Cf. [https://eliavw.github.io/mercs/](https://eliavw.github.io/mercs/)
+Cf. [https://systemallica.github.io/mercs/](https://systemallica.github.io/mercs/)
 
 ## Tutorials
 
-Cf. the quickstart section of the website, [https://eliavw.github.io/mercs/quickstart](https://eliavw.github.io/mercs/quickstart).
+Cf. the quickstart section of the website, [https://systemallica.github.io/mercs/quickstart](https://systemallica.github.io/mercs/quickstart).
 
 ## Code
 
-MERCS is fully open-source cf. our [github-repository](https://github.com/eliavw/mercs/)
+MERCS is fully open-source cf. our [github-repository](https://github.com/systemallica/mercs/)
 
 ## Publications
 
@@ -44,4 +44,4 @@ People involved in this project:
 * [Elia Van Wolputte](https://eliavw.github.io/)
 * Evgeniya Korneva
 * [Prof. Hendrik Blockeel](https://people.cs.kuleuven.be/~hendrik.blockeel/)
-
+* [Andrés Reverón Molina](https://andres.reveronmolina.me)
