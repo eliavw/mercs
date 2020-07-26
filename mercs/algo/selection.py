@@ -48,8 +48,11 @@ def random_selection_algorithm(
 
         m_codes = []
         if generate_mixed_codes:
-            potential_targets = np.sort(np.array(list(metadata["nominal_attributes"]) + list(metadata["numeric_attributes"])))
-            if potential_targets.shape[0] > 0:
+            # In the mixed case, targets can be nominal and numeric
+            potential_targets = np.sort(
+                np.array(list(metadata["nominal_attributes"]) + list(metadata["numeric_attributes"])))
+
+            if len(potential_targets) > 0:
                 for i in range(nb_iterations):
                     code = _single_iteration_random_selection(
                         nb_attributes, nb_targets, fraction_missing, potential_targets
@@ -59,7 +62,7 @@ def random_selection_algorithm(
             for attribute_kind in {"nominal_attributes", "numeric_attributes"}:
                 potential_targets = np.array(list(metadata[attribute_kind]))
 
-                if potential_targets.shape[0] > 0:
+                if len(potential_targets) > 0:
                     for i in range(nb_iterations):
                         code = _single_iteration_random_selection(
                             nb_attributes, nb_targets, fraction_missing, potential_targets
@@ -87,7 +90,7 @@ def _single_iteration_random_selection(
     nb_models, deficit = _nb_models_and_deficit(nb_targets, potential_targets)
     target_sets, nb_models = _target_sets(potential_targets, nb_targets, nb_models, deficit)
 
-    code = _init(nb_models, nb_attributes)
+    code = np.zeros((nb_models, nb_attributes), dtype=np.int8)
     code = _set_targets(code, target_sets)
     code = _set_missing(code, fraction_missing)
 
@@ -108,7 +111,7 @@ def _set_missing(m_codes, fraction=0.2):
 
 def _ensure_desc_atts(m_codes):
     """
-    If there are no input attributes in a code, we flip one missing attribute at random.
+    If there are no descriptive attributes in a code, we flip one missing attribute at random.
     """
     for row in m_codes:
         if 0 not in np.unique(row):
@@ -147,25 +150,13 @@ def _nb_models_and_deficit(nb_targets, potential_targets):
 
     Returns:
         nb_models: number of models
-        deficit: number of potential targets which will not be used
+        nb_leftover_targets: number of potential targets which will not be used
     """
-    nb_potential_targets = potential_targets.shape[0]
-
-    nb_models_with_regular_nb_targets = nb_potential_targets // nb_targets
+    nb_potential_targets = len(potential_targets)
+    nb_models = nb_potential_targets // nb_targets
     nb_leftover_targets = nb_potential_targets % nb_targets
 
-    if nb_leftover_targets:
-        nb_models = nb_models_with_regular_nb_targets
-        deficit = nb_leftover_targets
-    else:
-        nb_models = nb_models_with_regular_nb_targets
-        deficit = 0
-
-    return nb_models, deficit
-
-
-def _init(nb_models, nb_attributes):
-    return np.zeros((nb_models, nb_attributes), dtype=np.int8)
+    return nb_models, nb_leftover_targets
 
 
 def _target_sets(potential_targets, nb_targets, nb_models, deficit):
@@ -197,7 +188,7 @@ def _target_sets(potential_targets, nb_targets, nb_models, deficit):
 
 
 def _set_targets(m_codes, target_sets):
-    row_idx = np.arange(m_codes.shape[0]).reshape(-1, 1)
+    row_idx = np.arange(len(m_codes)).reshape(-1, 1)
     col_idx = target_sets
 
     m_codes[row_idx, col_idx] = TARG_ENCODING
