@@ -1,6 +1,7 @@
 # Notebooks
 .ipynb_checkpoints
 */ipynb_checkpoints/*
+note/
 
 #Models
 */*.pkl
@@ -42,3 +43,4 @@ site/
 
 # VSCode config
 .vscode
+.DS_Store
