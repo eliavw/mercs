@@ -20,9 +20,9 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.8.0"
 catboost = "^0.23.2"
-dask = { version = "^2.21.0", extras = ["delayed"] }
+dask = { version = "^2.22.0", extras = ["delayed"] }
 decision-tree-morfist = "^0.1.5"
-ipython = "^7.16.1"
+ipython = "^7.17.0"
 joblib = "^0.16.0"
 lightgbm = "^2.3.1"
 networkx = "^2.4"
@@ -33,11 +33,10 @@ shap = "^0.35.0"
 
 [tool.poetry.dev-dependencies]
 graphviz = "^0.14.1"
-ipython = "^7.16.1"
-jupyterlab = "^2.2.0"
+jupyterlab = "^2.2.2"
 mkdocs = "^1.1.2"
-mkdocs-material = "^5.5.0"
-pandas = "^1.0.5"
+mkdocs-material = "^5.5.1"
+pandas = "^1.1.0"
 pydot = "^1.4.1"
 pytest = "^5.4.3"
 setuptools = "^49.2.0"
