@@ -21,7 +21,7 @@ packages = [
 python = "^3.8.0"
 catboost = "^0.23.2"
 dask = { version = "^2.22.0", extras = ["delayed"] }
-decision-tree-morfist = "^0.1.5"
+decision-tree-morfist = "^0.3.0"
 ipython = "^7.17.0"
 joblib = "^0.16.0"
 lightgbm = "^2.3.1"
