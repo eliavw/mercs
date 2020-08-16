@@ -81,8 +81,8 @@ def normalize_m_score(m_score, dummy_evaluation, per_attribute_normalization=Fal
 
 def _model_evaluation(X, m_list, m_codes):
     m_score = np.zeros(m_codes.shape)
-    for m_idx, mod in enumerate(m_list):
-        i, o = get_i_o(X, mod.desc_ids, mod.targ_ids, filter_nan=True)
+    for m_idx, model in enumerate(m_list):
+        i, o = get_i_o(X, model.desc_ids, model.targ_ids, filter_nan=True)
 
         multi_target = o.shape[1] != 1
         if not multi_target:
@@ -90,11 +90,11 @@ def _model_evaluation(X, m_list, m_codes):
             o = o.ravel()
 
         y_true = o
-        y_pred = mod.predict(i)
+        y_pred = model.predict(i)
 
-        metric = _select_metric(mod)
-        mod.score = _calc_performance(y_true, y_pred, metric, multi_target)
-        m_score[m_idx, mod.targ_ids] = mod.score
+        metric = _select_metric(model)
+        model.score = _calc_performance(y_true, y_pred, metric, model, multi_target)
+        m_score[m_idx, model.targ_ids] = model.score
     return m_score
 
 
@@ -120,19 +120,23 @@ def _dummy_evaluation(m_codes):
 
 
 def _select_metric(model):
-    if model.out_kind in {"nominal"}:
+    if model.out_kind == "nominal":
         metric = accuracy_score
-    else:
+    elif model.out_kind == "numeric":
         metric = normalized_root_mean_squared_error
+    else:
+        # mixed model
+        metric = mixed_score
     return metric
 
 
-def _calc_performance(y_true, y_pred, metric, multi_target=False):
+def _calc_performance(y_true, y_pred, metric, model=None, multi_target=False):
 
     if multi_target:
-        performance = [
-            metric(y_true[:, i], y_pred[:, i]) for i in range(y_true.shape[1])
-        ]
+        if model.out_kind == "mixed":
+            performance = metric(y_true, y_pred, model.model.classification_targets)
+        else:
+            performance = [metric(y_true[:, i], y_pred[:, i]) for i in range(y_true.shape[1])]
     else:
         performance = metric(y_true, y_pred)
     return performance
@@ -150,3 +154,14 @@ def normalized_root_mean_squared_error(y_true, y_pred):
 
     nrmse = np.sqrt(mse / var)
     return 1 - nrmse
+
+
+def mixed_score(y_true, y_pred, classification_targets):
+    scores = np.zeros(y_true.shape[1])
+    for i in range(y_true.shape[1]):
+        if i in classification_targets:
+            scores[i] = accuracy_score(y_true[:, i], y_pred[:, i])
+        else:
+            scores[i] = normalized_root_mean_squared_error(y_true[:, i], y_pred[:, i])
+
+    return scores
