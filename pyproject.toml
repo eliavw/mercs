@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mercs-mixed"
-version = "0.0.44"
+version = "0.0.45"
 description = "MERCS: Multi-Directional Ensembles of Regression and Classification treeS"
 authors = ["Andrés Reverón Molina <andres@reveronmolina.me>", "Elia vw <elia.vw@gmail.com>"]
 license = "MIT"
