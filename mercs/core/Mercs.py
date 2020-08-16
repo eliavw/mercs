@@ -192,7 +192,7 @@ class Mercs(object):
         if mixed_algorithm in self.mixed_algorithms:
             self.mixed_algorithm = self.mixed_algorithms[mixed_algorithm]
         elif mixed_algorithm is not None:
-            print("Unknown mixed algorithm")
+            warnings.warn("Unknown mixed algorithm")
             exit(-1)
         else:
             self.mixed_algorithm = None

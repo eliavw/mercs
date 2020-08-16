@@ -73,8 +73,8 @@ def inference_algorithm(g, m_list, i_list, c_list, data, nominal_ids):
 # 5. model
 def input_data_node(g, node, g_desc_ids):
     def f(rel_idx):
-        f1 = select_numeric(rel_idx)
-        return f1(g.data)
+        f1 = select_numeric(g.data, rel_idx)
+        return f1
 
     g.nodes[node][INPUTS] = g_desc_ids.index(node[1])
     g.nodes[node][COMPUTE] = f
@@ -113,7 +113,8 @@ def nominal_data_node(g, node, m_list, c_list):
         return np.sum(collector, axis=0)
 
     def F2(parents):
-        return vote(F(parents))
+        sum = F(parents)
+        return vote(sum)
 
     g.nodes[node]["classes"] = classes
     g.nodes[node][INPUTS] = node_parents
@@ -134,7 +135,8 @@ def model_node(g, node, m_list):
     if hasattr(m_list[node[1]], "predict_proba"):
         def f2(parents):
             X = _model_inputs(g, parents)
-            return m_list[node[1]].predict_proba(X)
+            probabilities = m_list[node[1]].predict_proba(X)
+            return probabilities
 
         g.nodes[node]["compute_proba"] = f2
 
@@ -152,14 +154,15 @@ def compute(g, node, proba=False):
         result_str += "_proba"
         compute_str += "_proba"
 
-    r = g.nodes[node].get(result_str, None)
-    if r is None:
-        i = g.nodes[node].get(INPUTS)
+    result = g.nodes[node].get(result_str, None)
+    if result is None:
+        inputs = g.nodes[node].get(INPUTS)
         f = g.nodes[node].get(compute_str)
-        g.nodes[node][result_str] = f(i)
-        return g.nodes[node][result_str]
+        g.nodes[node][result_str] = f(inputs)
+        result = g.nodes[node][result_str]
+        return result
     else:
-        return r
+        return result
 
 
 def _nominal_inputs(g, parents, classes):
@@ -167,15 +170,13 @@ def _nominal_inputs(g, parents, classes):
     collector = []
     for rel_idx, parent_classes, n, model_type in parents:
         if len(parent_classes) == len(classes):
-            select_nom = select_nominal(rel_idx)
             X = compute(g, n, proba=True)
-            selected = select_nom(X, model_type)
+            selected = select_nominal(X, rel_idx, model_type)
             collector.append(selected)
         else:
             prob = pad_proba(parent_classes, classes)
-            select_nom = select_nominal(rel_idx)
             X = compute(g, n, proba=True)
-            selected = prob(select_nom(X, model_type))
+            selected = prob(select_nominal(X, rel_idx, model_type))
             collector.append(selected)
 
     return collector
@@ -185,9 +186,9 @@ def _numeric_inputs(g, parents):
     # Returns the 'numeric' inputs of the parent nodes
     collector = []
     for rel_idx, n, model_type in parents:
-        select_num = select_numeric(rel_idx)
         X = compute(g, n)
-        collector.append(select_num(X))
+        selected = select_numeric(X, rel_idx)
+        collector.append(selected)
     return collector
 
 

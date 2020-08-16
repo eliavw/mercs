@@ -25,23 +25,18 @@ def _map_classes(classes, all_classes):
     return sorted_idx[matches]
 
 
-def select_numeric(idx):
-    def select(X):
-        if X.ndim == 2:
-            return X.take(idx, axis=1)
-        else:
-            return X
-
-    return select
+def select_numeric(X, idx):
+    if X.ndim == 2:
+        return X.take(idx, axis=1)
+    else:
+        return X
 
 
-def select_nominal(idx):
-    def select(X, model_type):
-        if isinstance(X, list):
-            return X[idx]
-        elif model_type == "mixed":
-            return X[:, idx].tolist()
-        elif isinstance(X, np.ndarray):
-            return X
+def select_nominal(X, idx, model_type):
+    if isinstance(X, list):
+        return X[idx]
+    elif model_type == "mixed":
+        return X[:, idx].tolist()
+    elif isinstance(X, np.ndarray):
+        return X
 
-    return select
