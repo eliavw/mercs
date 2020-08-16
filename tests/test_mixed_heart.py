@@ -32,7 +32,7 @@ def test_heart():
     )
 
     # load the data
-    data = np.loadtxt("../data/heart_failure_clinical_records.csv", delimiter=",", skiprows=1)
+    data = np.loadtxt("./data/heart_failure_clinical_records.csv", delimiter=",", skiprows=1)
 
     # split the data into training and testing
     x_train, x_test = train_test_split(data, test_size=0.25, random_state=1337)
@@ -62,5 +62,3 @@ def test_heart():
 
     print(scores)
     print(scores_mixed)
-
-test_heart()

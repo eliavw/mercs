@@ -33,7 +33,7 @@ def test_sf1():
     )
 
     # load the data
-    data = np.loadtxt("../data/sf1.csv", delimiter=",", skiprows=1)
+    data = np.loadtxt("./data/sf1.csv", delimiter=",", skiprows=1)
 
     # split the data into training and testing
     x_train, x_test = train_test_split(data, test_size=0.25)
@@ -65,6 +65,3 @@ def test_sf1():
 
     print(scores)
     print(scores_mixed)
-
-
-test_sf1()

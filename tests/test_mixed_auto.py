@@ -33,7 +33,7 @@ def test_auto():
     )
 
     # load the data
-    data = np.loadtxt("../data/auto-mpg.csv", delimiter=",", skiprows=1)
+    data = np.loadtxt("./data/auto-mpg.csv", delimiter=",", skiprows=1)
 
     # split the data into training and testing
     x_train, x_test = train_test_split(data, test_size=0.25)
@@ -63,6 +63,3 @@ def test_auto():
 
     print(scores)
     print(scores_mixed)
-
-
-test_auto()
