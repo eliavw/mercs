@@ -81,7 +81,7 @@ class CanonicalModel(object):
             # this is needed because of the way the graph is built
             self.classes_ = []
             self.n_classes_ = []
-            for i in range(len(self.model.classification_labels) + 1):
+            for i in range(len(targ_ids)):
                 labels = self.model.classification_labels.get(i)
                 self.classes_.append(labels)
                 self.n_classes_.append(len(labels) if labels is not None else -1)
