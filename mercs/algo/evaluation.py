@@ -131,7 +131,6 @@ def _select_metric(model):
 
 
 def _calc_performance(y_true, y_pred, metric, model=None, multi_target=False):
-
     if multi_target:
         if model.out_kind == "mixed":
             performance = metric(y_true, y_pred, model.model.classification_targets)
@@ -151,8 +150,10 @@ def normalized_root_mean_squared_error(y_true, y_pred):
     """
     mse = mean_squared_error(y_true, y_pred)
     var = np.var(y_true)
-
-    nrmse = np.sqrt(mse / var)
+    if var != 0:
+        nrmse = np.sqrt(mse / var)
+    else:
+        nrmse = np.sqrt(mse)
     return 1 - nrmse
 
 
