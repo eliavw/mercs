@@ -264,9 +264,8 @@ def _build_parameters(
             learner = mixed
             out_kind = "mixed"
             kwargs = mixed_kwargs.copy()
-            kwargs["classification_targets"] = np.where(
-                np.array(list(nominal_attributes)) == np.array(targ_ids)
-            )[0].tolist()
+            _, classification_targets, _ = np.intersect1d(np.array(targ_ids), np.array(list(nominal_attributes)), return_indices=True)
+            kwargs["classification_targets"] = classification_targets
 
         kwargs["calculation_method_feature_importances"] = calculation_method_feature_importances
         kwargs["min_nb_samples"] = min_nb_samples
