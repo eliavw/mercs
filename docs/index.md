@@ -7,16 +7,16 @@ MERCS stands for **multi-directional ensembles of classification and regression 
 Easy via pip:
 
 ```
-pip install mercs-mixed
+pip install mercs
 ```
 
 ## Quickstart
 
-Now that you have installed MERCS you are ready to fit your first versatile model: [quickstart](https://systemallica.github.io/mercs/quickstart/)
+Now that you have installed MERCS you are ready to fit your first versatile model: [quickstart](https://eliavw.github.io/mercs/quickstart/)
 
 ## Source code
 
-MERCS is fully open-source cf. our [github-repository](https://github.com/systemallica/mercs/)
+MERCS is fully open-source cf. our [github-repository](https://github.com/eliavw/mercs/)
 
 ## Run/Build locally
 To run the project, you need [Poetry](https://python-poetry.org). Once installed:

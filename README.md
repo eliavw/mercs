@@ -7,13 +7,13 @@ MERCS stands for **multi-directional ensembles of classification and regression 
 Easy via pip:
 
 ```
-pip install mercs-mixed
+pip install mercs
 ```
 
 ## Documentation
 
 All the documentation and a quickstart guide can be accessed here:
-[https://systemallica.github.io/mercs/](https://systemallica.github.io/mercs/)
+[https://eliavw.github.io/mercs/](https://eliavw.github.io/mercs/)
 
 ## Run/Build locally
 To run the project, you need [Poetry](https://python-poetry.org). Once installed:

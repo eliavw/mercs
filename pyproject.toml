@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "mercs-mixed"
+name = "mercs"
 version = "0.0.45"
 description = "MERCS: Multi-Directional Ensembles of Regression and Classification treeS"
-authors = ["Andrés Reverón Molina <andres@reveronmolina.me>", "Elia vw <elia.vw@gmail.com>"]
+authors = ["Elia vw <elia.vw@gmail.com>", "Andrés Reverón Molina <andres@reveronmolina.me>"]
 license = "MIT"
-repository = "https://github.com/systemallica/mercs"
+repository = "https://github.com/eliavw/mercs"
 readme = "README.md"
 classifiers = [
         "Development Status :: 3 - Alpha",

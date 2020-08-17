@@ -1,14 +1,14 @@
 # Project information
 site_name: 'mercs'
 site_description: 'Documentation website for mercs'
-site_author: 'Andrés Reverón Molina'
+site_author: 'Elia vw'
 
 # Repository
-repo_name: 'systemallica/mercs'
-repo_url: 'https://github.com/systemallica/mercs'
+repo_name: 'eliavw/mercs'
+repo_url: 'https://github.com/eliavw/mercs'
 
 # Copyright
-copyright: 'Copyright &copy; 2020 Andrés Reverón Molina'
+copyright: 'Copyright &copy; 2020 Elia vw'
 
 # Configuration
 theme:
@@ -25,9 +25,9 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/systemallica
+      link: https://github.com/eliavw
     - icon: fontawesome/solid/paper-plane
-      link: mailto:<andres@reveronmolina.me>
+      link: mailto:<elia.vw@gmail.com>
   manifest: 'manifest.webmanifest'
 
 # Extensions
