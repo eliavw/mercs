@@ -4,23 +4,26 @@ MERCS stands for **multi-directional ensembles of classification and regression 
 
 ## Installation
 
-Easy via pip;
+Easy via pip:
 
 ```
 pip install mercs
 ```
 
-## Website
+## Quickstart
 
-Cf. [https://eliavw.github.io/mercs/](https://eliavw.github.io/mercs/)
+Now that you have installed MERCS you are ready to fit your first versatile model: [quickstart](https://eliavw.github.io/mercs/quickstart/)
 
-## Tutorials
-
-Cf. the quickstart section of the website, [https://eliavw.github.io/mercs/quickstart](https://eliavw.github.io/mercs/quickstart).
-
-## Code
+## Source code
 
 MERCS is fully open-source cf. our [github-repository](https://github.com/eliavw/mercs/)
+
+## Run/Build locally
+To run the project, you need [Poetry](https://python-poetry.org). Once installed:
+
+1. Clone the repository.
+2. Run `poetry install`.
+3. The development environment is ready. You can test it by running `pytest`.
 
 ## Publications
 
@@ -44,4 +47,4 @@ People involved in this project:
 * [Elia Van Wolputte](https://eliavw.github.io/)
 * Evgeniya Korneva
 * [Prof. Hendrik Blockeel](https://people.cs.kuleuven.be/~hendrik.blockeel/)
-
+* [Andrés Reverón Molina](https://andres.reveronmolina.me)

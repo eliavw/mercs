@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "mercs"
+version = "0.0.45"
+description = "MERCS: Multi-Directional Ensembles of Regression and Classification treeS"
+authors = ["Elia vw <elia.vw@gmail.com>", "Andrés Reverón Molina <andres@reveronmolina.me>"]
+license = "MIT"
+repository = "https://github.com/eliavw/mercs"
+readme = "README.md"
+classifiers = [
+        "Development Status :: 3 - Alpha",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Software Development :: Libraries :: Python Modules"
+]
+packages = [
+    { include = "mercs" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.8.0"
+catboost = "^0.24"
+dask = { version = "^2.23.0", extras = ["delayed"] }
+decision-tree-morfist = "^0.3.3"
+ipython = "^7.17.0"
+joblib = "^0.16.0"
+lightgbm = "^2.3.1"
+networkx = "^2.4"
+numpy = "^1.19.1"
+pydot = "^1.4.1"
+scikit-learn = "^0.23.2"
+shap = "^0.35.0"
+
+[tool.poetry.dev-dependencies]
+graphviz = "^0.14.1"
+jupyterlab = "^2.2.4"
+mkdocs = "^1.1.2"
+mkdocs-material = "^5.5.6"
+pandas = "^1.1.0"
+pydot = "^1.4.1"
+pytest = "^6.0.1"
+setuptools = "^49.2.0"

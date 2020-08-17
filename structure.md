@@ -3,30 +3,23 @@
 Layout for machine learning research projects.
 
 ```
-.
-+-- cli
-    | Command line interface
 +-- docs
     | Documentation
 +-- note
     | Notebooks
-+-- prod
-    | Products = all kinds of outputs. Typically you put these in .gitignore
-    +-- results
-    +-- visuals
-+-- resc
-    | Rescources, usually config and data
-    +-- config
-    +-- data
-        | Data typically goes through steps, keep track of them
-        +--step-01
-        +--step-02
-+-- src
-    +-- mercs
-+-- test
-|
++-- site
+    | Webpage source code
++-- mercs
+    | MERCS source code
++-- tests
+    | Testing files
 +-- .gitignore
-+-- environment.yml
++-- AUTHORS.rst
++-- CHANGELOG.rst
 +-- deploy.md
-+-- readme.md
++-- glossary.md
++-- LICENSE.txt
++-- mkdocs.yml
++-- README.md
++-- structure.md
 ```

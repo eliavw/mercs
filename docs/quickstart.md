@@ -6,17 +6,16 @@
 
 
 ```python
-import mercs
 import numpy as np
-from mercs.tests import load_iris, default_dataset
-from mercs.core import Mercs
-
 import pandas as pd
+
+from mercs import Mercs
+from mercs.utils import default_dataset
 ```
 
-## Fit
+## Fit the model
 
-Here a small MERCS testdrive for what I suppose you'll need. First, let us generate a basic dataset. Some utility-functions are integrated in MERCS so that goes like this
+Here's a small MERCS test-drive for the basic use-case. First, let us generate a basic dataset. Some utility-functions are integrated in MERCS so that goes like this
 
 
 ```python

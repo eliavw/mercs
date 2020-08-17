@@ -1,6 +1,7 @@
 # Notebooks
 .ipynb_checkpoints
 */ipynb_checkpoints/*
+note/
 
 #Models
 */*.pkl
@@ -36,3 +37,10 @@ MANIFEST
 
 # Sphinx documentation
 docs/_build/
+
+# mkdocs build
+site/
+
+# VSCode config
+.vscode
+.DS_Store
