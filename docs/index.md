@@ -10,17 +10,20 @@ Easy via pip:
 pip install mercs-mixed
 ```
 
-## Website
+## Quickstart
 
-Cf. [https://systemallica.github.io/mercs/](https://systemallica.github.io/mercs/)
+Now that you have installed MERCS you are ready to fit your first versatile model: [quickstart](https://systemallica.github.io/mercs/quickstart/)
 
-## Tutorials
-
-Cf. the quickstart section of the website, [https://systemallica.github.io/mercs/quickstart](https://systemallica.github.io/mercs/quickstart).
-
-## Code
+## Source code
 
 MERCS is fully open-source cf. our [github-repository](https://github.com/systemallica/mercs/)
+
+## Run/Build locally
+To run the project, you need [Poetry](https://python-poetry.org). Once installed:
+
+1. Clone the repository.
+2. Run `poetry install`.
+3. The development environment is ready. You can test it by running `pytest`.
 
 ## Publications
 
