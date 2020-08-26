@@ -1,21 +1,50 @@
+import itertools
 import warnings
 from inspect import signature
 from timeit import default_timer
 
-import dask
-import itertools
-import numpy as np
+from sklearn.preprocessing import normalize
 
+import dask
+import numpy as np
+import shap
 from dask import delayed
 from networkx import NetworkXUnfeasible, find_cycle, topological_sort
 from sklearn.ensemble import (
-    RandomForestClassifier,
-    RandomForestRegressor,
     ExtraTreesClassifier,
     ExtraTreesRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
 )
 from sklearn.impute import SimpleImputer
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+
+from ..algo import (
+    evaluation,
+    imputation,
+    inference,
+    inference_v3,
+    new_inference,
+    new_prediction,
+    selection,
+    vector_prediction,
+)
+from ..algo.induction import base_induction_algorithm, expand_induction_algorithm
+from ..composition import CompositeModel, NewCompositeModel, o, x
+from ..graph import build_diagram, compose_all, get_targ, model_to_graph
+from ..utils import (
+    DESC_ENCODING,
+    MISS_ENCODING,
+    TARG_ENCODING,
+    DecoratedDecisionTreeClassifier,
+    DecoratedDecisionTreeRegressor,
+    DecoratedRandomForestClassifier,
+    DecoratedRandomForestRegressor,
+    code_to_query,
+    get_i_o,
+    query_to_code,
+)
+from ..visuals import save_diagram, show_diagram
 
 try:
     from xgboost import XGBClassifier as XGBC
@@ -40,33 +69,6 @@ try:
     from wekalearn import RandomForestRegressor as WLR
 except:
     WLC, WLR = None, None
-
-
-from ..algo import (
-    imputation,
-    inference,
-    inference_v3,
-    new_inference,
-    new_prediction,
-    selection,
-    vector_prediction,
-    evaluation,
-)
-from ..algo.induction import base_induction_algorithm, expand_induction_algorithm
-from ..composition import CompositeModel, NewCompositeModel, o, x
-from ..graph import build_diagram, compose_all, get_targ, model_to_graph
-from ..utils import (
-    DESC_ENCODING,
-    MISS_ENCODING,
-    TARG_ENCODING,
-    code_to_query,
-    query_to_code,
-    DecoratedDecisionTreeClassifier,
-    DecoratedDecisionTreeRegressor,
-    DecoratedRandomForestClassifier,
-    DecoratedRandomForestRegressor,
-)
-from ..visuals import save_diagram, show_diagram
 
 
 class Mercs(object):
@@ -805,7 +807,7 @@ class Mercs(object):
         return filtered_nodes
 
     # SYNTH
-    def autocomplete(X, **kwargs):
+    def autocomplete(self, X, **kwargs):
         return
 
     # Legacy (delete when I am sure they can go)
@@ -866,3 +868,94 @@ class Mercs(object):
     def _update_t_codes(self):
         self.t_codes = (self.m_codes == TARG_ENCODING).astype(int)
         return
+
+    # AVATAR-TOOLS
+    def avatar(
+        self,
+        explainer_data,
+        background_data=None,
+        check_additivity=True,
+        keep_abs_shaps=False,
+        **shap_kwargs
+    ):
+
+        self._init_avatar()
+
+        for m_idx in range(len(self.m_list)):
+            # Extract tree and m_code
+            tree = self.m_list[m_idx].model
+            m_code = self.m_codes[m_idx]
+
+            # Filter data
+            attribute_filter = m_code == DESC_ENCODING
+            X = explainer_data[:, attribute_filter]
+
+            if background_data is not None:
+                B = background_data[:, attribute_filter]
+            else:
+                B = background_data
+
+            # Shap Calculation
+            explainer = shap.TreeExplainer(
+                tree, data=B, check_additivity=check_additivity, **shap_kwargs
+            )
+            raw_shaps = explainer.shap_values(X)
+
+            # Process Shap values
+            tsr_shaps = np.array(raw_shaps)  # tensor
+            abs_shaps = np.abs(tsr_shaps)  # absolute
+
+            if len(abs_shaps.shape) == 3:
+                # In case of nominal target, sum shap values across target classes
+                abs_shaps = np.sum(abs_shaps, axis=0)
+
+            avg_shaps = np.mean(
+                abs_shaps, axis=0
+            )  # Avg over instances (of explainer data!)
+
+            nrm_shaps = np.squeeze(
+                normalize(avg_shaps.reshape(1, -1), norm="l1")
+            )  # Normalize (between 0 and 1)
+
+            if keep_abs_shaps:
+                self.abs_shaps.append(abs_shaps)
+            self.nrm_shaps.append(nrm_shaps)
+
+        self._format_abs_shaps()
+        self._format_nrm_shaps()
+
+        return
+
+    def _init_avatar(self):
+        """Initialize avatar-datastructures that are used there.
+        """
+        self.abs_shaps = []
+        self.nrm_shaps = []
+        return
+
+    def _format_nrm_shaps(self):
+        if isinstance(self.nrm_shaps, list) and len(self.nrm_shaps) > 0:
+            init = np.zeros(self.m_codes.shape)
+
+            for m_idx, (mod, nrm_shap) in enumerate(zip(self.m_list, self.nrm_shaps)):
+                init[m_idx, list(mod.desc_ids)] = nrm_shap
+
+            self.nrm_shaps = init
+        else:
+            return
+
+    def _format_abs_shaps(self):
+        if isinstance(self.abs_shaps, list) and len(self.abs_shaps) > 0:
+            n_models, n_attributes = self.m_codes.shape
+            n_instances = self.abs_shaps[0].shape[0]
+            init = np.zeros((n_models, n_instances, n_attributes))
+
+            for m_idx, (mod, abs_shap) in enumerate(zip(self.m_list, self.abs_shaps)):
+                init_abs = np.zeros((n_instances, n_attributes))
+                init_abs[:, list(mod.desc_ids)] = abs_shap
+                init[m_idx, :, :] = init_abs
+
+            self.abs_shap = init
+        else:
+            return
+
