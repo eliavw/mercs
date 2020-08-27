@@ -876,7 +876,7 @@ class Mercs(object):
         background_data=None,
         check_additivity=True,
         keep_abs_shaps=False,
-        **shap_kwargs
+        **explainer_kwargs
     ):
 
         self._init_avatar()
@@ -897,9 +897,9 @@ class Mercs(object):
 
             # Shap Calculation
             explainer = shap.TreeExplainer(
-                tree, data=B, check_additivity=check_additivity, **shap_kwargs
+                tree, data=B, **explainer_kwargs
             )
-            raw_shaps = explainer.shap_values(X)
+            raw_shaps = explainer.shap_values(X, check_additivity=check_additivity)
 
             # Process Shap values
             tsr_shaps = np.array(raw_shaps)  # tensor
