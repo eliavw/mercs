@@ -955,7 +955,7 @@ class Mercs(object):
                 init_abs[:, list(mod.desc_ids)] = abs_shap
                 init[m_idx, :, :] = init_abs
 
-            self.abs_shap = init
+            self.abs_shaps = init
         else:
             return
 
