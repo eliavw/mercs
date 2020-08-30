@@ -942,6 +942,7 @@ class Mercs(object):
         l1_reg="num_features(10)",
         check_additivity=False,
         n_samples=20,
+        silent=True
     ):
 
         # Extract function to explain
@@ -959,7 +960,7 @@ class Mercs(object):
 
         explainer = shap.KernelExplainer(f, shap.sample(X_train, n_samples))
         raw_shaps = explainer.shap_values(
-            X_test, l1_reg=l1_reg, check_additivity=check_additivity
+            X_test, l1_reg=l1_reg, check_additivity=check_additivity, silent=silent
         )
 
         # Process Shap values
