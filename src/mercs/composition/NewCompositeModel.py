@@ -43,6 +43,7 @@ class NewCompositeModel(object):
             self.predict_proba = _get_predict_proba(diagram, self.nominal_targ_ids)
 
         self.score = 1
+        self._out_kind = None
 
         return
 
@@ -60,13 +61,31 @@ class NewCompositeModel(object):
             confidences = [np.max(normalize(c, norm='l1')) for c in confidences]
         return confidences
 
+    @property
+    def n_outputs_(self):
+        return len(self.targ_ids)
+
+    @property
+    def n_features_(self):
+        return len(self.desc_ids)
+
+    @property
+    def out_kind(self):
+        if self._out_kind is None:
+            nominal = len(self.nominal_targ_ids) > 0
+            numeric = len(self.nominal_targ_ids) < len(self.targ_ids)
+            out_kinds = {(True, True): "mix", (True, False): 'nominal', (False, True): 'numeric'}
+            self._out_kind =  out_kinds[(nominal, numeric)]
+            return self._out_kind
+        else:
+            return self._out_kind
+
 
 def _get_predict(diagram, targ_ids):
     def predict(X, redo=True):
-        diagram.data = X
-
         if redo:
             clean_cache(diagram)
+            diagram.data = X
 
         collector = [compute(diagram, ("D", n)) for n in targ_ids]
         if len(targ_ids) == 1:
@@ -79,10 +98,10 @@ def _get_predict(diagram, targ_ids):
 
 def _get_predict_proba(diagram, nominal_targ_ids):
     def predict_proba(X, redo=True):
-        diagram.data = X
-
+        
         if redo:
             clean_cache(diagram)
+            diagram.data = X
 
         collector = [compute(diagram, ("D", n), proba=True) for n in nominal_targ_ids]
         return collector

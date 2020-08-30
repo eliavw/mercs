@@ -15,7 +15,12 @@ def base_selection_algorithm(metadata, nb_targets=1, nb_iterations=1, random_sta
 
 
 def random_selection_algorithm(
-    metadata, nb_targets=1, nb_iterations=1, fraction_missing=0.2, random_state=997
+    metadata,
+    nb_targets=1,
+    nb_iterations=1,
+    fraction_missing=0.2,
+    random_state=997,
+    nb_missing_attributes=None,
 ):
     if isinstance(fraction_missing, list):
         codes = []
@@ -31,17 +36,27 @@ def random_selection_algorithm(
             )
         m_codes = np.vstack(codes)
         return m_codes
-    
+
     else:
         # Init
         np.random.seed(random_state)
         nb_attributes = metadata["n_attributes"]
         nb_targets = _set_nb_targets(nb_targets, nb_attributes)
 
-        if fraction_missing in {'sqrt'}:
-            fraction_missing = 1-np.sqrt(nb_attributes)/nb_attributes
+        if fraction_missing in {"sqrt"}:
+            fraction_missing = 1 - np.sqrt(nb_attributes) / nb_attributes
         elif fraction_missing in {"log2"}:
-            fraction_missing = 1-np.log2(nb_attributes)/nb_attributes
+            fraction_missing = 1 - np.log2(nb_attributes) / nb_attributes
+        elif (
+            nb_missing_attributes is not None
+            and isinstance(nb_missing_attributes, int)
+            and nb_missing_attributes < nb_attributes - nb_targets
+        ):
+            fraction_missing = nb_missing_attributes / (nb_attributes - nb_targets)
+        else:
+            assert (
+                0.0 <= fraction_missing <= 1.0
+            ), "Not a valid fraction of missing attributes"
 
         codes = []
         for attribute_kind in {"nominal_attributes", "numeric_attributes"}:
@@ -66,7 +81,9 @@ def _single_iteration_random_selection(
     nb_models, deficit = _nb_models_and_deficit(nb_targets, potential_targets)
 
     # Init
-    target_sets, nb_models = _target_sets(potential_targets, nb_targets, nb_models, deficit)
+    target_sets, nb_models = _target_sets(
+        potential_targets, nb_targets, nb_models, deficit
+    )
 
     m_codes = _init(nb_models, nb_attributes)
 
@@ -128,7 +145,7 @@ def _nb_models_and_deficit(nb_targets, potential_targets):
     nb_leftover_targets = nb_potential_targets % nb_targets
 
     if nb_leftover_targets:
-        nb_models = nb_models_with_regular_nb_targets 
+        nb_models = nb_models_with_regular_nb_targets
         deficit = nb_leftover_targets
     else:
         nb_models = nb_models_with_regular_nb_targets
@@ -144,14 +161,16 @@ def _init(nb_models, nb_attributes):
 def _target_sets(potential_targets, nb_targets, nb_models, deficit):
 
     nb_targets = min(len(potential_targets), nb_targets)
-    
+
     np.random.shuffle(potential_targets)
 
     choices = potential_targets[deficit:]
     result = np.random.choice(choices, replace=False, size=(nb_models, nb_targets))
 
     if deficit:
-        choices = potential_targets[:nb_targets] # This includes all the ones you left out!
+        choices = potential_targets[
+            :nb_targets
+        ]  # This includes all the ones you left out!
         extra = np.random.choice(choices, replace=False, size=(1, nb_targets))
         result = np.vstack([result, extra])
         nb_models += 1

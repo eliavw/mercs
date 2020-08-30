@@ -83,12 +83,15 @@ def input_data_node(g, node, g_desc_ids):
 
 def imputation_node(g, node, i_list, nb_rows):
 
+    # FIXME: You always have to check the data for the amount of imputations! So now, this functions contains useless crap.
+
     # Build function
     def f(n):
+        n = g.data.shape[0]
         return i_list[node[1]].transform(_dummy_array(n)).ravel()
 
     # New
-    g.nodes[node]["inputs"] = nb_rows
+    g.nodes[node]["inputs"] = None
     g.nodes[node]["compute"] = f
     return
 

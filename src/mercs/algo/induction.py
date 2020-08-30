@@ -320,6 +320,7 @@ def _learn_model(
 def _calculate_shap_values(model, X):
     shap_values = shap.TreeExplainer(model).shap_values(X)
     if isinstance(shap_values, list):
+
         r = _summarize_shaps(shap_values[0])
     else:
         r = _summarize_shaps(shap_values)

@@ -896,26 +896,12 @@ class Mercs(object):
                 B = background_data
 
             # Shap Calculation
-            explainer = shap.TreeExplainer(
-                tree, data=B, **explainer_kwargs
-            )
+            explainer = shap.TreeExplainer(tree, data=B, **explainer_kwargs)
             raw_shaps = explainer.shap_values(X, check_additivity=check_additivity)
 
             # Process Shap values
-            tsr_shaps = np.array(raw_shaps)  # tensor
-            abs_shaps = np.abs(tsr_shaps)  # absolute
-
-            if len(abs_shaps.shape) == 3:
-                # In case of nominal target, sum shap values across target classes
-                abs_shaps = np.sum(abs_shaps, axis=0)
-
-            avg_shaps = np.mean(
-                abs_shaps, axis=0
-            )  # Avg over instances (of explainer data!)
-
-            nrm_shaps = np.squeeze(
-                normalize(avg_shaps.reshape(1, -1), norm="l1")
-            )  # Normalize (between 0 and 1)
+            abs_shaps = self._raw_to_abs_shaps(raw_shaps)
+            nrm_shaps = self._abs_to_nrm_shaps(abs_shaps)
 
             if keep_abs_shaps:
                 self.abs_shaps.append(abs_shaps)
@@ -925,6 +911,74 @@ class Mercs(object):
         self._format_nrm_shaps()
 
         return
+
+    @staticmethod
+    def _raw_to_abs_shaps(raw_shaps):
+        # Process Shap values
+        tsr_shaps = np.array(raw_shaps)  # tensor
+        abs_shaps = np.abs(tsr_shaps)  # absolute
+
+        if len(abs_shaps.shape) == 3:
+            # In case of nominal target, sum shap values across target classes
+            abs_shaps = np.sum(abs_shaps, axis=0)
+        return abs_shaps
+
+    @staticmethod
+    def _abs_to_nrm_shaps(abs_shaps):
+        avg_shaps = np.mean(
+            abs_shaps, axis=0
+        )  # Avg over instances (of explainer data!)
+
+        nrm_shaps = np.squeeze(
+            normalize(avg_shaps.reshape(1, -1), norm="l1")
+        )  # Normalize (between 0 and 1)
+
+        return nrm_shaps
+
+    def avatar_q_model(
+        self,
+        X_train,
+        X_test,
+        l1_reg="num_features(10)",
+        check_additivity=False,
+        n_samples=20,
+    ):
+
+        # Extract function to explain
+        m = self.q_model
+        f = self._extract_function_to_explain(self.q_model)
+
+        # Data
+        assert (
+            X_train.shape[1] == X_test.shape[1]
+        ), "Inconsistent attribute count. Your carelessness is disappointing."
+        if X_train.shape[1] != len(m.desc_ids):
+            attribute_filter = m.desc_ids
+            X_train = X_train[:, attribute_filter]
+            X_test = X_test[:, attribute_filter]
+
+        explainer = shap.KernelExplainer(f, shap.sample(X_train, n_samples))
+        raw_shaps = explainer.shap_values(
+            X_test, l1_reg=l1_reg, check_additivity=check_additivity
+        )
+
+        # Process Shap values
+        abs_shaps = self._raw_to_abs_shaps(raw_shaps)
+        nrm_shaps = self._abs_to_nrm_shaps(abs_shaps)
+
+        return nrm_shaps
+
+    @staticmethod
+    def _extract_function_to_explain(m):
+        assert m.n_outputs_ == 1
+        # Extract function
+        if m.out_kind in {"nominal"}:
+            f = lambda x: m.predict_proba(x)[0]
+        elif m.out_kind in {"numerc"}:
+            f = m.predict
+        else:
+            raise ValueError("I don't know this kind of q_model.out_kind")
+        return f
 
     def _init_avatar(self):
         """Initialize avatar-datastructures that are used there.
