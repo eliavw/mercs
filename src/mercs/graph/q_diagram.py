@@ -6,9 +6,8 @@ import numpy as np
 from ..utils import code_to_query
 
 
-
 NODE_PREFIXES = dict(data="D", model="M", imputation="I", composition="C")
-NODE_KINDS = {v:k for k,v in NODE_PREFIXES.items()}
+NODE_KINDS = {v: k for k, v in NODE_PREFIXES.items()}
 
 
 def build_diagram(m_list, m_sel, q_code, g=None, prune=False, composition=False):
@@ -27,7 +26,9 @@ def build_diagram(m_list, m_sel, q_code, g=None, prune=False, composition=False)
     for m_layer in m_sel:
         models = [(m_idx, m_list[m_idx]) for m_idx in m_layer]
 
-        a_src, f_tgt, g = build_diagram_single_layer(models, a_src, f_tgt, g=g, composition=composition)
+        a_src, f_tgt, g = build_diagram_single_layer(
+            models, a_src, f_tgt, g=g, composition=composition
+        )
 
     if prune:
         _prune(g)
@@ -54,7 +55,9 @@ def build_diagram_single_layer(models, a_src, f_tgt, g=None, composition=False):
                 e_src.append((v_name(a, kind="data"), v_name(m_idx, kind=node_kind)))
                 f_tgt.add(a)
             else:
-                e_src.append((v_name(a, kind="imputation"), v_name(m_idx, kind=node_kind)))
+                e_src.append(
+                    (v_name(a, kind="imputation"), v_name(m_idx, kind=node_kind))
+                )
 
     for m_idx, m in models:
         for a in m.targ_ids:
@@ -70,6 +73,7 @@ def build_diagram_single_layer(models, a_src, f_tgt, g=None, composition=False):
 def v_name(idx, kind="model"):
     return (NODE_PREFIXES[kind], idx)
 
+
 def _prune(g):
 
     tgt_nodes = {("D", n) for n in g.targ_ids}
@@ -79,5 +83,4 @@ def _prune(g):
     g.remove_nodes_from(remove)
 
     return
-
 

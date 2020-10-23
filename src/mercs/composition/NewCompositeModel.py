@@ -2,7 +2,7 @@ import numpy as np
 from dask import delayed
 from sklearn.preprocessing import normalize
 
-from ..algo.inference_v3 import compute
+from ..algo.inference_v3 import compute, compute_fimps, aggregate_fimps
 from .compose import o, x
 from ..graph.network import get_ids, node_label, get_nodes
 
@@ -12,13 +12,20 @@ VERBOSITY = 0
 
 
 class NewCompositeModel(object):
-    def __init__(self, diagram, desc_ids=None, targ_ids=None, nominal_attributes=None, n_component_models=0):
+    def __init__(
+        self,
+        diagram,
+        desc_ids=None,
+        targ_ids=None,
+        nominal_attributes=None,
+        n_component_models=0,
+    ):
 
         # Assign desc and targ ids
 
         for k, idx in diagram.nodes():
-            if k == 'M' and (idx >= n_component_models):
-                diagram.nodes[(k, idx)]['shape'] = 'square'
+            if k == "M" and (idx >= n_component_models):
+                diagram.nodes[(k, idx)]["shape"] = "square"
 
         if desc_ids is not None:
             self.desc_ids = desc_ids
@@ -33,7 +40,7 @@ class NewCompositeModel(object):
         self.desc_ids = sorted(list(self.desc_ids))
         self.targ_ids = sorted(list(self.targ_ids))
 
-        self.feature_importances_ = [1/len(self.desc_ids) for _ in self.desc_ids]
+        self.feature_importances_ = _get_fimps(diagram, self.targ_ids)
 
         self.predict = _get_predict(diagram, self.targ_ids)
 
@@ -47,7 +54,6 @@ class NewCompositeModel(object):
 
         return
 
-
     def get_confidences(self, X=None, redo=False, normalize_outputs=True):
 
         confidences = [np.array([[1.0]]) for t in self.targ_ids]
@@ -58,7 +64,7 @@ class NewCompositeModel(object):
             confidences[targ_idx] = proba
 
         if normalize_outputs:
-            confidences = [np.max(normalize(c, norm='l1')) for c in confidences]
+            confidences = [np.max(normalize(c, norm="l1")) for c in confidences]
         return confidences
 
     @property
@@ -74,11 +80,23 @@ class NewCompositeModel(object):
         if self._out_kind is None:
             nominal = len(self.nominal_targ_ids) > 0
             numeric = len(self.nominal_targ_ids) < len(self.targ_ids)
-            out_kinds = {(True, True): "mix", (True, False): 'nominal', (False, True): 'numeric'}
-            self._out_kind =  out_kinds[(nominal, numeric)]
+            out_kinds = {
+                (True, True): "mix",
+                (True, False): "nominal",
+                (False, True): "numeric",
+            }
+            self._out_kind = out_kinds[(nominal, numeric)]
             return self._out_kind
         else:
             return self._out_kind
+
+
+def _get_fimps(diagram, targ_ids):
+    collector = [compute_fimps(diagram, ("D", n)) for n in targ_ids]
+    if len(targ_ids) == 1:
+        return collector.pop()
+    else:
+        return aggregate_fimps(collector)
 
 
 def _get_predict(diagram, targ_ids):
@@ -98,7 +116,7 @@ def _get_predict(diagram, targ_ids):
 
 def _get_predict_proba(diagram, nominal_targ_ids):
     def predict_proba(X, redo=True):
-        
+
         if redo:
             clean_cache(diagram)
             diagram.data = X

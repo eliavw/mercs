@@ -30,7 +30,7 @@ from ..algo import (
     vector_prediction,
 )
 from ..algo.induction import base_induction_algorithm, expand_induction_algorithm
-from ..composition import CompositeModel, NewCompositeModel, o, x
+from ..composition import NewCompositeModel, o, x
 from ..graph import build_diagram, compose_all, get_targ, model_to_graph
 from ..utils import (
     DESC_ENCODING,
@@ -444,57 +444,6 @@ class Mercs(object):
         q_diagram = build_diagram(self.c_list, self.c_sel, self.q_code, prune=True)
         return q_diagram
 
-    def merge_models(self, q_models):
-
-        types = self._get_types(self.metadata)
-
-        walks = [
-            model_to_graph(m, types, idx=idx, composition=True)
-            for idx, m in enumerate(q_models)
-        ]
-        q_diagram = compose_all(walks)
-        filtered_nodes = self.filter_nodes(q_diagram)
-
-        try:
-            self.inference_algorithm(q_diagram, sorted_nodes=filtered_nodes)
-        except NetworkXUnfeasible:
-            cycle = find_cycle(q_diagram, orientation="original")
-            msg = """
-            Topological sort failed, investigate diagram to debug.
-            
-            I will never be able to squeeze a prediction out of a diagram with a loop.
-            
-            Cycle was:  {}
-            """.format(
-                cycle
-            )
-            raise RecursionError(msg)
-
-        q_model = CompositeModel(q_diagram)
-        return q_diagram, q_model
-
-    def _get_q_model(self, q_diagram, X):
-
-        self._add_imputer_function(q_diagram)
-
-        try:
-            self.inference_algorithm(q_diagram, X=X)
-        except NetworkXUnfeasible:
-            cycle = find_cycle(q_diagram, orientation="original")
-            msg = """
-            Topological sort failed, investigate diagram to debug.
-            
-            I will never be able to squeeze a prediction out of a diagram with a loop.
-            
-            Cycle was:  {}
-            """.format(
-                cycle
-            )
-            raise RecursionError(msg)
-
-        q_model = CompositeModel(q_diagram)
-        return q_model
-
     # Filter
     def _filter_m_list_m_codes(self):
         """Filtering out the failed models.
@@ -579,7 +528,7 @@ class Mercs(object):
         if X.ndim != 2:
             X = X.reshape(-1, 1)
 
-        n_rows, n_cols = X.shape
+        _, n_cols = X.shape
 
         types = [X[0, 0].dtype for _ in range(n_cols)]
         nominal_attributes = set(
@@ -810,54 +759,6 @@ class Mercs(object):
     def autocomplete(self, X, **kwargs):
         return
 
-    # Legacy (delete when I am sure they can go)
-    def predict_old(
-        self, X, q_code=None, prediction_algorithm=None, beta=False, **kwargs
-    ):
-        # Update configuration if necessary
-        if q_code is None:
-            q_code = self._default_q_code()
-
-        if prediction_algorithm is not None:
-            reuse = False
-            self._reconfig_prediction(
-                prediction_algorithm=prediction_algorithm, **kwargs
-            )
-
-        # Adjust data
-        tic_prediction = default_timer()
-        self.q_code = q_code
-        self.q_desc_ids, self.q_targ_ids, _ = code_to_query(
-            self.q_code, return_list=True
-        )
-
-        # Make query-diagram
-        self.q_diagram = self.prediction_algorithm(
-            self.g_list, q_code, self.fi, self.t_codes, **self.prd_cfg
-        )
-
-        toc_prediction = default_timer()
-
-        tic_dask = default_timer()
-
-        toc_dask = default_timer()
-
-        tic_compute = default_timer()
-        res = self.q_model.predict.compute()
-        toc_compute = default_timer()
-
-        # Diagnostics
-        self.model_data["prd_time"] = toc_prediction - tic_prediction
-        self.model_data["dsk_time"] = toc_dask - tic_dask
-        self.model_data["cmp_time"] = toc_compute - tic_compute
-        self.model_data["inf_time"] = toc_compute - tic_prediction
-        self.model_data["ratios"] = (
-            self.model_data["prd_time"] / self.model_data["inf_time"],
-            self.model_data["dsk_time"] / self.model_data["inf_time"],
-            self.model_data["cmp_time"] / self.model_data["inf_time"],
-        )
-        return res
-
     def _update_g_list(self):
         types = self._get_types(self.metadata)
         self.g_list = [
@@ -942,7 +843,7 @@ class Mercs(object):
         l1_reg="num_features(10)",
         check_additivity=False,
         n_samples=20,
-        silent=True
+        silent=True,
     ):
 
         # Extract function to explain

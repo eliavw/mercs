@@ -213,7 +213,7 @@ def walk(
     thresholds = _init_thresholds(init_threshold, stepsize)
 
     any_target = True
-    q_desc, q_targ, q_miss = code_to_query(q_code)
+    q_desc, q_targ, _ = code_to_query(q_code)
     a_src = q_desc
     a_tgt = q_targ
 
@@ -241,7 +241,7 @@ def walk(
 
         # Allow to predict anything that follows
         if not straight:
-            s_tgt = get_att_2d(m_codes[step_m_sel, :], kind="targ")  # HACK
+            _ = get_att_2d(m_codes[step_m_sel, :], kind="targ")  # HACK
             s_src = np.union1d(a_tgt, s_src)  # HACK
 
         a_tgt = np.setdiff1d(s_src, a_src)

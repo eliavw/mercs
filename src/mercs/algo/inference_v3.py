@@ -77,6 +77,7 @@ def input_data_node(g, node, g_desc_ids):
     # New
     g.nodes[node]["inputs"] = g_desc_ids.index(node[1])
     g.nodes[node]["compute"] = f
+    g.nodes[node]["importance"] = {node[1]: 1.0}
 
     return
 
@@ -93,32 +94,25 @@ def imputation_node(g, node, i_list, nb_rows):
     # New
     g.nodes[node]["inputs"] = None
     g.nodes[node]["compute"] = f
+    g.nodes[node]["importance"] = {node[1]: 0.0}
     return
 
-"""
-def single_data_node(g, node, m_list, c_list):
-    # New
-    parents = _numeric_parents(g, m_list, c_list, node)
-
-    def f(parents):
-        collector = _numeric_inputs(g, parents)
-        return collector.pop()
-
-    g.nodes[node]["inputs"] = parents
-    g.nodes[node]["compute"] = f
-
-    return
-"""
 
 def numeric_data_node(g, node, m_list, c_list):
     parents = _numeric_parents(g, m_list, c_list, node)
 
-    def f(parents):
+    def f1(parents):
         collector = _numeric_inputs(g, parents)
         return np.mean(collector, axis=0)
 
+    def f3(p):
+        parent_nodes = [n for i, n in p]
+        i_fimps = _parent_fimps(g, parent_nodes)
+        return aggregate_fimps(i_fimps)
+
     g.nodes[node]["inputs"] = parents
-    g.nodes[node]["compute"] = f
+    g.nodes[node]["compute"] = f1
+    g.nodes[node]["compute_fimps"] = f3
     return
 
 
@@ -131,17 +125,23 @@ def nominal_data_node(g, node, m_list, c_list):
     def vote(X):
         return classes.take(np.argmax(X, axis=1), axis=0)
 
-    def F(parents):
+    def f1(parents):
         collector = _nominal_inputs(g, parents, classes)
         return np.sum(collector, axis=0)
 
-    def F2(parents):
-        return vote(F(parents))
+    def f2(parents):
+        return vote(f1(parents))
+
+    def f3(p):
+        parent_nodes = [n for i, c, n in p]
+        i_fimps = _parent_fimps(g, parent_nodes)
+        return aggregate_fimps(i_fimps)
 
     g.nodes[node]["classes"] = classes
     g.nodes[node]["inputs"] = parents
-    g.nodes[node]["compute_proba"] = F
-    g.nodes[node]["compute"] = F2
+    g.nodes[node]["compute_proba"] = f1
+    g.nodes[node]["compute"] = f2
+    g.nodes[node]["compute_fimps"] = f3
 
     return
 
@@ -151,12 +151,12 @@ def model_node(g, node, m_list):
     # New
     parents = _model_parents(g, node)
 
-    def f(parents):
+    def f1(parents):
         X = _model_inputs(g, parents)
         return m_list[node[1]].predict(X)
 
     g.nodes[node]["inputs"] = parents
-    g.nodes[node]["compute"] = f
+    g.nodes[node]["compute"] = f1
 
     if hasattr(m_list[node[1]], "predict_proba"):
 
@@ -166,6 +166,14 @@ def model_node(g, node, m_list):
 
         g.nodes[node]["compute_proba"] = f2
 
+    # Fimps
+    def f3(p):
+        i_fimps = _parent_fimps(g, p)
+        m_fimps = m_list[node[1]].feature_importances_
+        return aggregate_fimps(i_fimps, weights=m_fimps)
+
+    g.nodes[node]["compute_fimps"] = f3
+
     return
 
 
@@ -173,7 +181,7 @@ def composite_node(g, node, c_list):
     return model_node(g, node, c_list)
 
 
-# Helpers - Function
+# Function
 def compute(g, node, proba=False):
 
     result = "result"
@@ -193,6 +201,18 @@ def compute(g, node, proba=False):
         return r
 
 
+def compute_fimps(g, node):
+    r = g.nodes[node].get("importance", None)
+    if r is None:
+        print(node)
+        i = g.nodes[node].get("inputs")
+        f = g.nodes[node].get("compute_fimps")
+        g.nodes[node]["importance"] = f(i)
+
+    return g.nodes[node]["importance"]
+
+
+# Helpers - Function
 def _nominal_inputs(g, parents, classes):
     collector = [
         _select_nominal(idx)(compute(g, n, proba=True))
@@ -262,3 +282,32 @@ def classes(p_idx, r_idx, k, m_list, c_list):
     elif k == "C":
         return c_list[p_idx].classes_[r_idx]
 
+
+# Helpers Feature Importances
+def _parent_fimps(g, parents):
+    return [compute_fimps(g, n) for n in parents]
+
+
+def aggregate_fimps(fimps, weights=None):
+    assert isinstance(fimps, list), "Only list allowed."
+
+    r = dict()
+    l = fimps
+
+    if weights is None:
+        weights = [1.0 for _ in fimps]
+    else:
+        assert isinstance(weights, (list, np.ndarray)), "Only list allowed."
+        assert len(l) == len(weights)
+
+    t = np.sum(weights)
+
+    # Calculation
+    for d, w in zip(l, weights):
+        for k, v in d.items():
+            r[k] = r.get(k, 0) + v * w
+
+    for k, v in r.items():
+        r[k] = r[k] / t
+
+    return r
