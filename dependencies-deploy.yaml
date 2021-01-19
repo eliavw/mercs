@@ -17,4 +17,4 @@ dependencies:
       - toolz
       - tornado
       - pydot
-      - shap
+      - twine

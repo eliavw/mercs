@@ -12,8 +12,6 @@ dependencies:
     - pygments
     - pylint
     - xgboost
-    - lightgbm
-    - catboost
     - pip:
         - mkdocs-minify-plugin>=0.2
         - pymdown-extensions
