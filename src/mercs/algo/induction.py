@@ -18,7 +18,13 @@ from joblib import Parallel, delayed
 from ..utils.decoration import decorate_tree
 
 from sklearn.preprocessing import normalize
-import shap
+
+try:
+    import shap
+except:
+    msg = "SHAP not found, therefore using SHAP-values for feature importance not available."
+    warnings.warn(msg)
+    shap = None
 
 
 try:

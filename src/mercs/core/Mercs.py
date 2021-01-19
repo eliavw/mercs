@@ -7,7 +7,14 @@ from sklearn.preprocessing import normalize
 
 import dask
 import numpy as np
-import shap
+
+try:
+    import shap
+except:
+    msg = "SHAP not found, therefore using SHAP-values for feature importance not available."
+    warnings.warn(msg)
+    shap = None
+
 from dask import delayed
 from networkx import NetworkXUnfeasible, find_cycle, topological_sort
 from sklearn.ensemble import (
@@ -878,6 +885,7 @@ class Mercs(object):
         keep_abs_shaps=False,
         **explainer_kwargs
     ):
+        assert shap is not None, "SHAP not found, so cannot do anything here."
 
         self._init_avatar()
 
@@ -942,8 +950,9 @@ class Mercs(object):
         l1_reg="num_features(10)",
         check_additivity=False,
         n_samples=20,
-        silent=True
+        silent=True,
     ):
+        assert shap is not None, "SHAP not found, so cannot do anything here."
 
         # Extract function to explain
         m = self.q_model
