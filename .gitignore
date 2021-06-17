@@ -1,13 +1,13 @@
 # Notebooks
 .ipynb_checkpoints
-*/ipynb_checkpoints/*
+*/.ipynb_checkpoints/*
 
 #Models
 */*.pkl
 
 # IDE
-.idea
-*/.idea/*
+.idea/
+.vscode/
 
 # Python
 __pycache__
