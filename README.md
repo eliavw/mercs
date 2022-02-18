@@ -2,6 +2,40 @@
 
 MERCS stands for **multi-directional ensembles of classification and regression trees**. It is a novel ML-paradigm under active development at the [DTAI-lab at KU Leuven](https://dtai.cs.kuleuven.be/).
 
+## Cite
+
+**You are free to use this software in your own research. All that we ask in return is credit in the form of a citation.**
+
+Depending on your specific reason to use our library, one of the citations below may be more appropriate than another (see the section publications below for more details). 
+When in doubt: use the first citation, as that is the most general publication on this algorithm (or just cite them all).
+
+```
+@inproceedings{van2018mercs,
+  title={MERCS: multi-directional ensembles of regression and classification trees},
+  author={Van Wolputte, Elia and Korneva, Evgeniya and Blockeel, Hendrik},
+  booktitle={Thirty-Second AAAI Conference on Artificial Intelligence},
+  year={2018}
+}
+
+@inproceedings{korneva2018model,
+  title={Model Selection for Multi-directional Ensemble of Regression and Classification Trees},
+  author={Korneva, Evgeniya and Blockeel, Hendrik},
+  booktitle={Benelux Conference on Artificial Intelligence},
+  pages={52--64},
+  year={2018},
+  organization={Springer}
+}
+
+@inproceedings{wolputte2020missing,
+  title={Missing value imputation with MERCS: a faster alternative to MissForest},
+  author={Van Wolputte, Elia and Blockeel, Hendrik},
+  booktitle={International Conference on Discovery Science},
+  pages={502--516},
+  year={2020},
+  organization={Springer}
+}
+```
+
 ## Installation
 
 Easy via pip;
@@ -52,7 +86,6 @@ Bibtex
   booktitle={Thirty-Second AAAI Conference on Artificial Intelligence},
   year={2018}
 }
-
 ```
 
 ### Model Selection for Multi-Directional Ensemble of Regression and Classification Trees
