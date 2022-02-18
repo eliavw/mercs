@@ -55,6 +55,35 @@ Bibtex
 
 ```
 
+### Model Selection for Multi-Directional Ensemble of Regression and Classification Trees
+
+**Abstract**
+*Multi-directional ensembles of Classification and Regression treeS (MERCS) extend random forests towards multi-directional prediction. The current work discusses different strategies of induction of such a model, which comes down to selecting sets of input and output attributes for each tree in the ensemble. It has been previously shown that employing multi-targets trees as MERCS component models helps reduce both model induction and inference time. In the current work, we present a novel output selection strategy for MERCS component model that takes relatedness between the attributes into account and compare it to the random output selection. We observe that accounting for relatedness between targets has a limited effect on performance and discuss the reasons why it is inherently difficult to improve the overall performance of a multi-directional model by altering target selection strategy for its component models.*
+
+**Authors**
+Evgeniya Korneva, Hendrik Blockeel
+
+**Open Access**
+A pdf version can be found at [KU Leuven](https://lirias.kuleuven.be/retrieve/529405)
+
+
+ISO-690
+```
+KORNEVA, Evgeniya; BLOCKEEL, Hendrik. Model Selection for Multi-directional Ensemble of Regression and Classification Trees. In: Benelux Conference on Artificial Intelligence. Springer, Cham, 2018. p. 52-64.
+```
+
+Bibtex
+```bibtex
+@inproceedings{korneva2018model,
+  title={Model Selection for Multi-directional Ensemble of Regression and Classification Trees},
+  author={Korneva, Evgeniya and Blockeel, Hendrik},
+  booktitle={Benelux Conference on Artificial Intelligence},
+  pages={52--64},
+  year={2018},
+  organization={Springer}
+}
+```
+
 ### Missing value imputation with MERCS: a faster alternative to MissForest
 
 **Abstract**
