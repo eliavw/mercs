@@ -6,10 +6,10 @@ MERCS stands for **multi-directional ensembles of classification and regression 
 
 **You are free to use this software in your own research. All that we ask in return is credit in the form of a citation.**
 
-Depending on your specific reason to use our library, one of the citations below may be more appropriate than another (see the section [publications](#publications) below for more details). 
+Depending on your specific reason to use our library, one of the citations (in bibtex format) below may be more appropriate than another (see the section [publications](#publications) below for more details). 
 When in doubt: use the first citation, as that is the most general publication on this algorithm (or just cite them all).
 
-```
+```bibtex
 @inproceedings{van2018mercs,
   title={MERCS: multi-directional ensembles of regression and classification trees},
   author={Van Wolputte, Elia and Korneva, Evgeniya and Blockeel, Hendrik},
